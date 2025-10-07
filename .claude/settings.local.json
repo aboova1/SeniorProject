@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python:*)",
+      "WebSearch",
+      "Bash(git mv:*)",
+      "Bash(move precise_sp500_collector.py enhanced_transcript_collector.py feature_processor.py order.txt data_pipeline)",
+      "Bash(move finbert_embeddings.py transcript_filter.py data_pipeline)",
+      "Bash(move:*)",
+      "Bash(sort:*)",
+      "Bash(pip show:*)",
+      "Bash(dir:*)",
+      "Bash(awk:*)",
+      "Bash(find:*)",
+      "Bash(tree:*)",
+      "Read(//c/**)",
+      "Bash(del data_pipelinedatatext_embeddings.parquet)",
+      "Bash(git log:*)",
+      "Bash(git add:*)",
+      "Bash(exit 0)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git lfs:*)",
+      "Bash(git rm:*)",
+      "Bash(grep:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

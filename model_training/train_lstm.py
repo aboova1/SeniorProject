@@ -152,7 +152,7 @@ class UniLSTMAttnDelta(nn.Module):
         z = self.drop(z)
         delta_log = self.fc2(z)                     # (B, 1)
         y8_log_hat = y7_log + delta_log             # residual in log-space
-        return y8_log_hat, delta_log
+        return y8_log_hat
 
 # ---------------------------- Trainer ----------------------------------
 class LSTMTrainer:
@@ -323,7 +323,7 @@ class LSTMTrainer:
             X = X.to(self.device); y8_log = y8_log.to(self.device); y7_log = y7_log.to(self.device); y8_raw = y8_raw.to(self.device)
             if train_mode:
                 optimizer.zero_grad()
-            y8_log_hat, _ = self.model(X, y7_log)
+            y8_log_hat = self.model(X, y7_log)
             loss = criterion(y8_log_hat, y8_log)
             if train_mode:
                 loss.backward()
@@ -423,7 +423,34 @@ class LSTMTrainer:
 
         test_ld = DataLoader(self.test_ds, batch_size=128, shuffle=False, pin_memory=True)
         criterion = self._make_criterion(self.loss_name)
-        loss, pred_raw, targ_raw = self._epoch(test_ld, optimizer=None, criterion=criterion)
+
+        # Collect predictions with Q7 prices for directional analysis
+        self.model.eval()
+        pred_raw_all, targ_raw_all, y7_raw_all = [], [], []
+        total_loss = 0.0
+
+        for batch in test_ld:
+            X, y8_log, y7_log, y8_raw = batch
+            X = X.to(self.device); y8_log = y8_log.to(self.device); y7_log = y7_log.to(self.device); y8_raw = y8_raw.to(self.device)
+
+            with torch.no_grad():
+                y8_log_hat = self.model(X, y7_log)
+                loss = criterion(y8_log_hat, y8_log)
+                total_loss += float(loss.item())
+
+                pred_raw = torch.expm1(y8_log_hat).cpu().numpy().flatten()
+                targ_raw = y8_raw.cpu().numpy().flatten()
+                y7_raw = torch.expm1(y7_log).cpu().numpy().flatten()
+
+                pred_raw_all.extend(pred_raw)
+                targ_raw_all.extend(targ_raw)
+                y7_raw_all.extend(y7_raw)
+
+        pred_raw = np.array(pred_raw_all)
+        targ_raw = np.array(targ_raw_all)
+        y7_raw = np.array(y7_raw_all)
+        loss = total_loss / max(1, len(test_ld))
+
         m = self._metrics(pred_raw, targ_raw)
 
         logger.info("="*60); logger.info("TEST SET RESULTS (raw units)"); logger.info("="*60)
@@ -432,10 +459,51 @@ class LSTMTrainer:
         logger.info(f"Test MAE: {m['mae']:.6f} | Test IC: {m['ic']:.4f}")
         logger.info("="*60)
 
+        # Directional classification accuracy
+        logger.info("DIRECTIONAL CLASSIFICATION (UP vs DOWN)")
+        logger.info("="*60)
+
+        # Calculate directional changes (Q8 vs Q7)
+        pred_direction = (pred_raw > y7_raw).astype(int)  # 1 = up, 0 = down
+        actual_direction = (targ_raw > y7_raw).astype(int)
+
+        # Overall accuracy
+        correct = (pred_direction == actual_direction).sum()
+        total = len(pred_direction)
+        accuracy = correct / total
+
+        # Per-class accuracy
+        up_mask = (actual_direction == 1)
+        down_mask = (actual_direction == 0)
+
+        up_correct = ((pred_direction == actual_direction) & up_mask).sum()
+        up_total = up_mask.sum()
+        up_accuracy = up_correct / up_total if up_total > 0 else 0.0
+
+        down_correct = ((pred_direction == actual_direction) & down_mask).sum()
+        down_total = down_mask.sum()
+        down_accuracy = down_correct / down_total if down_total > 0 else 0.0
+
+        logger.info(f"Overall Directional Accuracy: {accuracy:.4f} ({correct}/{total})")
+        logger.info(f"")
+        logger.info(f"Class: UP (stock went up)")
+        logger.info(f"  Samples: {up_total} ({up_total/total*100:.1f}%)")
+        logger.info(f"  Accuracy: {up_accuracy:.4f} ({up_correct}/{up_total})")
+        logger.info(f"")
+        logger.info(f"Class: DOWN (stock went down)")
+        logger.info(f"  Samples: {down_total} ({down_total/total*100:.1f}%)")
+        logger.info(f"  Accuracy: {down_accuracy:.4f} ({down_correct}/{down_total})")
+        logger.info("="*60)
+
         with open(self.results_dir / "test_results.json", "w") as f:
             json.dump({
                 "test_log_loss": float(loss),
                 "test_metrics_raw": m,
+                "directional_accuracy": {
+                    "overall": float(accuracy),
+                    "up_class": {"accuracy": float(up_accuracy), "samples": int(up_total)},
+                    "down_class": {"accuracy": float(down_accuracy), "samples": int(down_total)},
+                },
                 "predictions_raw": pred_raw.tolist(),
                 "targets_raw": targ_raw.tolist(),
             }, f, indent=2)

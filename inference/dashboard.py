@@ -9,6 +9,7 @@ from sklearn.preprocessing import StandardScaler
 import streamlit as st
 import yfinance as yf
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from live_predictor import LivePredictor
 
 # ----------------------------- Logging ---------------------------------
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -127,8 +128,19 @@ def load_data(data_dir: str):
 def _fetch_single_ticker_name(ticker):
     """Fetch a single ticker's company name."""
     try:
-        info = yf.Ticker(ticker).info
-        name = info.get('longName') or info.get('shortName') or ticker
+        stock = yf.Ticker(ticker)
+        info = stock.info
+
+        # Try multiple fields in order of preference
+        name = (info.get('longName') or
+                info.get('shortName') or
+                info.get('name') or
+                ticker)
+
+        # If we only got the ticker back, it likely failed
+        if name == ticker and not info:
+            logger.warning(f"No info available for {ticker}")
+
         return ticker, name
     except Exception as e:
         logger.warning(f"Could not fetch name for {ticker}: {e}")
@@ -155,18 +167,21 @@ def get_company_names(tickers):
     if tickers_to_fetch:
         logger.info(f"Fetching names for {len(tickers_to_fetch)} tickers in parallel...")
 
-        # Fetch in parallel with progress
-        with ThreadPoolExecutor(max_workers=20) as executor:
+        # Fetch in parallel with progress, reduced max_workers to be more conservative
+        with ThreadPoolExecutor(max_workers=10) as executor:
             futures = {executor.submit(_fetch_single_ticker_name, ticker): ticker
                       for ticker in tickers_to_fetch}
 
             completed = 0
             for future in as_completed(futures):
-                ticker, name = future.result()
-                ticker_to_name[ticker] = name
-                completed += 1
-                if completed % 50 == 0:
-                    logger.info(f"Fetched {completed}/{len(tickers_to_fetch)} ticker names...")
+                try:
+                    ticker, name = future.result()
+                    ticker_to_name[ticker] = name
+                    completed += 1
+                    if completed % 50 == 0:
+                        logger.info(f"Fetched {completed}/{len(tickers_to_fetch)} ticker names...")
+                except Exception as e:
+                    logger.error(f"Failed to fetch ticker name: {e}")
 
         logger.info(f"Completed fetching {len(tickers_to_fetch)} ticker names")
 
@@ -214,8 +229,9 @@ def get_prediction(model, feature_cols, scaler, device, sequence_df):
     predicted_log_price = y8_log_hat.item()
     predicted_price = np.expm1(predicted_log_price)
 
-    # Get actual target price for comparison
-    actual_price = sequence_df.iloc[7]['target_price_next_q']
+    # Get actual Q8 price for comparison (this is what we're trying to predict)
+    # Q7's target_price_next_q should equal Q8's current_price
+    actual_price_q8 = sequence_df.iloc[7]['current_price']
 
     q7_date = sequence_df.iloc[6]['fiscal_quarter_end'].strftime('%Y-%m-%d')
     q8_date = sequence_df.iloc[7]['fiscal_quarter_end'].strftime('%Y-%m-%d')
@@ -224,9 +240,9 @@ def get_prediction(model, feature_cols, scaler, device, sequence_df):
         "ticker": sequence_df.iloc[0]['ticker'],
         "prediction_for_quarter_ending": q8_date,
         "input_sequence_ends_on": q7_date,
-        "last_known_price": float(y7_raw),
-        "predicted_price": float(predicted_price),
-        "actual_price": float(actual_price) if pd.notna(actual_price) else None,
+        "last_known_price": float(y7_raw),  # Q7 current_price
+        "predicted_price": float(predicted_price),  # Model's prediction for Q8
+        "actual_price": float(actual_price_q8) if pd.notna(actual_price_q8) else None,  # Q8 current_price
         "sequence_id": sequence_df.iloc[0]['sequence_id'],
         "delta_log": delta_log.item(),
         "attn_weights": attn_weights[0].cpu().numpy() if attn_weights is not None else None,
@@ -234,6 +250,30 @@ def get_prediction(model, feature_cols, scaler, device, sequence_df):
     }
 
     return result
+
+@st.cache_data(ttl=3600)  # Cache for 1 hour
+def get_live_prediction(_model, feature_cols, _scaler, _device, ticker: str):
+    """Make a live prediction for current quarter using recent data from yfinance"""
+    try:
+        predictor = LivePredictor()
+
+        # Make prediction
+        result = predictor.predict_next_quarter(
+            ticker=ticker,
+            model=_model,
+            feature_cols=feature_cols,
+            scaler=_scaler,
+            device=_device
+        )
+
+        return result
+
+    except Exception as e:
+        logger.error(f"Error in live prediction: {e}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
 
 def main():
     st.set_page_config(page_title="LSTM Stock Price Prediction Dashboard", layout="wide")
@@ -245,6 +285,14 @@ def main():
     st.sidebar.header("Configuration")
     model_path = st.sidebar.text_input("Model Path", "models/best_model.pt")
     data_dir = "data_pipeline/data"
+
+    # Add prediction mode selector
+    prediction_mode = st.sidebar.radio(
+        "Prediction Mode",
+        ["Historical (Test Data)", "Live (Current Quarter)"],
+        help="Historical: Use test set data. Live: Predict current quarter for any S&P 500 stock"
+    )
+
     st.sidebar.info(f"📊 Loading data from train, val, and test sets")
 
     # Load model and data
@@ -263,7 +311,111 @@ def main():
     for dataset, count in dataset_counts.items():
         st.sidebar.text(f"  • {dataset}: {count} sequences")
 
-    # Main content
+    # Main content based on mode
+    if prediction_mode == "Live (Current Quarter)":
+        st.header("🔴 Live Prediction - Current Quarter")
+        st.markdown("**Predict stock prices for the upcoming quarter using the most recent 7 quarters of data**")
+
+        # Get company names for all unique tickers
+        unique_tickers = sorted(df['ticker'].unique())
+        ticker_to_name = get_company_names(unique_tickers)
+
+        # Create ticker options with company names
+        ticker_options_live = {f"{t} - {ticker_to_name[t]}": t for t in unique_tickers}
+        ticker_display_names_live = sorted(ticker_options_live.keys())
+
+        selected_display_live = st.selectbox(
+            "Select Company for Live Prediction",
+            ticker_display_names_live,
+            index=0
+        )
+        selected_ticker_live = ticker_options_live[selected_display_live]
+
+        # Get next quarter info
+        next_quarter = pd.Period.now(freq='Q') + 1
+        next_quarter_str = next_quarter.strftime('%Y Q%q')
+
+        st.info(f"📅 Target Quarter: **{next_quarter_str}**")
+        st.info(f"📊 Input Data: Most recent 7 quarters")
+
+        if st.button("🚀 Generate Live Prediction", type="primary"):
+            with st.spinner(f"Fetching live data for {selected_ticker_live}..."):
+                result = get_live_prediction(model, feature_cols, scaler, device, selected_ticker_live)
+
+            if result.get('success'):
+                st.success(f"✅ Successfully generated prediction for {result['ticker']}")
+
+                # Display prediction results
+                st.header("Live Prediction Results")
+
+                # Key metrics
+                metric_col1, metric_col2, metric_col3 = st.columns(3)
+
+                with metric_col1:
+                    st.metric("Current Price", f"${result['current_price']:.2f}")
+
+                with metric_col2:
+                    st.metric(
+                        "Predicted Price",
+                        f"${result['predicted_price']:.2f}",
+                        f"{result['price_change_pct']:+.2f}%"
+                    )
+
+                with metric_col3:
+                    st.metric(
+                        "Expected Change",
+                        f"${result['price_change']:+.2f}",
+                        f"{result['price_change_pct']:+.2f}%"
+                    )
+
+                # Details
+                st.subheader("Prediction Details")
+                detail_col1, detail_col2 = st.columns(2)
+
+                with detail_col1:
+                    st.write(f"**Ticker:** {result['ticker']}")
+                    st.write(f"**Input Sequence Ends:** {result['input_sequence_ends']}")
+                    st.write(f"**Prediction For:** {result['prediction_for_quarter']}")
+
+                with detail_col2:
+                    st.write(f"**Delta (log-space):** {result['delta_log']:.6f}")
+                    st.write(f"**Features Used:** {result['features_available']}/{result['features_total']}")
+
+                    if result['features_available'] < result['features_total']:
+                        st.warning(f"⚠️ Only {result['features_available']}/{result['features_total']} features available. Missing features filled with zeros.")
+
+                # Attention weights
+                if result['attn_weights'] is not None:
+                    st.subheader("Attention Weights Across Input Sequence")
+                    st.markdown("*Shows which quarters the model focused on when making the prediction*")
+
+                    attn_df = pd.DataFrame({
+                        'Quarter': [f"Q{i+1}" for i in range(7)],
+                        'Date': result['quarters_used'],
+                        'Attention Weight': result['attn_weights']
+                    })
+                    st.bar_chart(attn_df.set_index('Quarter')['Attention Weight'])
+
+                    with st.expander("View Quarter Dates"):
+                        st.dataframe(attn_df[['Quarter', 'Date']], use_container_width=True)
+
+                # Disclaimer
+                st.divider()
+                st.warning("""
+                ⚠️ **Disclaimer**: This is a predictive model and not financial advice.
+                - Live predictions use data from yfinance which may be incomplete
+                - Model was trained on historical S&P 500 data through 2024
+                - Actual results may vary significantly from predictions
+                - Do not use this for actual trading decisions
+                """)
+
+            else:
+                st.error(f"❌ Failed to generate prediction")
+                st.error(f"Error: {result.get('error', 'Unknown error')}")
+
+        return
+
+    # Historical mode (original functionality)
     st.header("Select a Test Example")
 
     # Get unique ticker-dataset combinations
@@ -383,42 +535,6 @@ def main():
             'Attention Weight': result['attn_weights']
         })
         st.bar_chart(attn_df.set_index('Quarter'))
-
-    # Show sequence data
-    st.subheader("Input Sequence Data (Q1-Q7)")
-
-    # Display key columns from the sequence
-    display_cols = ['quarter_in_sequence', 'fiscal_quarter_end', 'current_price', 'ticker', 'sector']
-    # Add some feature columns if available
-    feature_samples = [c for c in feature_cols[:5] if c in sequence_df.columns]
-    display_cols.extend(feature_samples)
-
-    sequence_display = sequence_df.iloc[:7][display_cols].copy()
-    sequence_display['fiscal_quarter_end'] = sequence_display['fiscal_quarter_end'].dt.strftime('%Y-%m-%d')
-    st.dataframe(sequence_display, use_container_width=True)
-
-    # Target quarter (Q8) information
-    st.subheader("Target Quarter (Q8)")
-    q8_display = sequence_df.iloc[7:8][['quarter_in_sequence', 'fiscal_quarter_end', 'target_price_next_q', 'current_price']].copy()
-    q8_display['fiscal_quarter_end'] = q8_display['fiscal_quarter_end'].dt.strftime('%Y-%m-%d')
-    st.dataframe(q8_display, use_container_width=True)
-
-    # Download prediction as JSON
-    st.download_button(
-        label="Download Prediction as JSON",
-        data=json.dumps({
-            'ticker': result['ticker'],
-            'sequence_id': result['sequence_id'],
-            'input_sequence_ends_on': result['input_sequence_ends_on'],
-            'prediction_for_quarter_ending': result['prediction_for_quarter_ending'],
-            'last_known_price': result['last_known_price'],
-            'predicted_price': result['predicted_price'],
-            'actual_price': result['actual_price'],
-            'delta_log': result['delta_log']
-        }, indent=2),
-        file_name=f"prediction_{result['ticker']}_{result['prediction_for_quarter_ending']}.json",
-        mime="application/json"
-    )
 
 if __name__ == "__main__":
     main()

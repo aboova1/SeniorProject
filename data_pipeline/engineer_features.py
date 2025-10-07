@@ -96,6 +96,64 @@ def _process_ticker_technical(args: tuple) -> list:
 
     return tech_indicators
 
+def _process_ticker_target_prices(args: tuple) -> list:
+    """Process target prices for a single ticker - used for parallel processing"""
+    ticker, ticker_prices, ticker_quarters = args
+    target_prices = []
+
+    ticker_data = ticker_prices.sort_values('date').copy()
+    ticker_data['date'] = pd.to_datetime(ticker_data['date'])
+
+    if len(ticker_data) < 126:  # Need at least 6 months of data
+        return []
+
+    ticker_quarters = pd.to_datetime(ticker_quarters)
+
+    # First, find the matched price for each quarter (do this once for all quarters)
+    # This ensures Q(n).target_price_next_q == Q(n+1).current_price
+    quarter_prices = {}
+    for quarter_date in ticker_quarters:
+        quarter_df = pd.DataFrame({'quarter_date': [quarter_date]})
+        matched = pd.merge_asof(
+            quarter_df,
+            ticker_data[['date', 'adj_close']],
+            left_on='quarter_date',
+            right_on='date',
+            direction='nearest',
+            tolerance=pd.Timedelta(days=10)
+        )
+
+        if pd.notna(matched['adj_close'].iloc[0]):
+            quarter_prices[quarter_date] = matched['adj_close'].iloc[0]
+
+    # Now create target prices using the pre-matched prices
+    for i, quarter_date in enumerate(ticker_quarters):
+        if quarter_date not in quarter_prices:
+            continue
+
+        current_price = quarter_prices[quarter_date]
+
+        # Get next quarter's price (if available)
+        if i + 1 < len(ticker_quarters):
+            next_quarter_date = ticker_quarters[i + 1]
+
+            if next_quarter_date not in quarter_prices:
+                continue
+
+            next_quarter_price = quarter_prices[next_quarter_date]
+        else:
+            # No next quarter available
+            continue
+
+        target_prices.append({
+            'ticker': ticker,
+            'fiscal_quarter_end': quarter_date,
+            'current_price': current_price,
+            'target_price_next_q': next_quarter_price
+        })
+
+    return target_prices
+
 class UpdatedFeatureProcessor:
     def __init__(self, data_dir: str = "data_pipeline/data", max_workers: int = None):
         self.data_dir = Path(data_dir)
@@ -343,48 +401,57 @@ class UpdatedFeatureProcessor:
         return text_features_df
 
     def calculate_target_prices(self, prices_df: pd.DataFrame, membership_df: pd.DataFrame) -> pd.DataFrame:
-        """Calculate next quarter share price for S&P 500 members"""
+        """Calculate next quarter share price for S&P 500 members (parallelized)"""
         logger.info("Calculating target share prices...")
 
-        target_prices = []
-        sp500_tickers = membership_df['ticker'].unique()
+        sp500_tickers = [t for t in membership_df['ticker'].unique() if t != 'SPY']
+        logger.info(f"Processing target prices for {len(sp500_tickers)} tickers")
+        logger.info(f"Using {self.max_workers} parallel workers")
 
+        # Pre-filter data per ticker
+        ticker_data_dict = {}
+        ticker_quarters_dict = {}
         for ticker in sp500_tickers:
-            if ticker == 'SPY':
-                continue
+            ticker_data_dict[ticker] = prices_df[prices_df['ticker'] == ticker].copy()
+            ticker_quarters_dict[ticker] = membership_df[membership_df['ticker'] == ticker]['quarter_end'].values
 
-            ticker_data = prices_df[prices_df['ticker'] == ticker].sort_values('date')
-            if len(ticker_data) < 126:  # Need at least 6 months of data
-                continue
+        # Process tickers in batches
+        batch_size = 50
+        target_prices = []
 
-            # Get quarters when this ticker was in S&P 500
-            ticker_quarters = membership_df[membership_df['ticker'] == ticker]['quarter_end'].values
+        for batch_start in range(0, len(sp500_tickers), batch_size):
+            batch_end = min(batch_start + batch_size, len(sp500_tickers))
+            batch_tickers = sp500_tickers[batch_start:batch_end]
 
-            for quarter_end in ticker_quarters:
-                quarter_date = pd.to_datetime(quarter_end)
+            logger.info(f"Processing batch {batch_start//batch_size + 1}/{(len(sp500_tickers) + batch_size - 1)//batch_size} "
+                       f"(tickers {batch_start+1}-{batch_end})")
 
-                # Find data point closest to quarter end
-                quarter_data = ticker_data[ticker_data['date'] <= quarter_date]
-                if len(quarter_data) == 0:
-                    continue
+            # Prepare arguments for this batch
+            task_args = [
+                (ticker, ticker_data_dict[ticker], ticker_quarters_dict[ticker])
+                for ticker in batch_tickers
+            ]
 
-                quarter_idx = len(quarter_data) - 1
-                current_price = ticker_data.iloc[quarter_idx]['adj_close']
+            # Process batch in parallel
+            with ProcessPoolExecutor(max_workers=self.max_workers) as executor:
+                futures = {executor.submit(_process_ticker_target_prices, args): args[0] for args in task_args}
 
-                # Check if we have enough future data (next quarter)
-                if quarter_idx + 63 >= len(ticker_data):  # 63 trading days ≈ 1 quarter
-                    continue
+                # Collect results
+                completed = 0
+                for future in as_completed(futures):
+                    ticker = futures[future]
+                    completed += 1
 
-                # Get next quarter's price (approximately 63 trading days ahead)
-                next_quarter_price = ticker_data.iloc[quarter_idx + 63]['adj_close']
+                    if completed % 10 == 0:
+                        global_completed = batch_start + completed
+                        logger.info(f"Target prices progress: {global_completed}/{len(sp500_tickers)}")
 
-                if pd.notna(current_price) and pd.notna(next_quarter_price):
-                    target_prices.append({
-                        'ticker': ticker,
-                        'fiscal_quarter_end': quarter_date,
-                        'current_price': current_price,
-                        'target_price_next_q': next_quarter_price
-                    })
+                    try:
+                        result = future.result()
+                        if result:
+                            target_prices.extend(result)
+                    except Exception as e:
+                        logger.error(f"Error processing {ticker}: {e}")
 
         target_df = pd.DataFrame(target_prices)
         logger.info(f"Calculated target prices for {len(target_df)} observations")

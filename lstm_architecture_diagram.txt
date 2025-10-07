@@ -1,0 +1,183 @@
+╔══════════════════════════════════════════════════════════════════════════════════════╗
+║                        UniLSTMAttnDelta Architecture                                 ║
+╚══════════════════════════════════════════════════════════════════════════════════════╝
+
+INPUT:
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│  X: (Batch, 7 quarters, Features)  │  y7_log: (Batch, 1) - log1p(Q7 price)        │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                          LSTM (Unidirectional)                                      │
+│  • input_size: F (number of features, ~62)                                          │
+│  • hidden_size: 192                                                                 │
+│  • num_layers: 2                                                                    │
+│  • dropout: 0.25 (between layers)                                                   │
+│  • batch_first: True                                                                │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+                    ┌───────────────────────┐
+                    │  LSTM Outputs         │
+                    │  (B, 7, H=192)        │
+                    └───────────────────────┘
+                                │
+                ┌───────────────┴───────────────┐
+                │                               │
+                ▼                               ▼
+    ┌──────────────────────┐      ┌──────────────────────────┐
+    │  Last Hidden State   │      │  All Outputs (Q1-Q7)     │
+    │  last_h: (B, H=192)  │      │  outputs: (B, 7, H=192)  │
+    └──────────────────────┘      └──────────────────────────┘
+                │                               │
+                │                               │
+                │          ┌────────────────────┘
+                │          │
+                ▼          ▼
+        ┌─────────────────────────────────────────────────┐
+        │         CausalAttention Mechanism               │
+        │  • Query (q): last_h → (B, 1, H)                │
+        │  • Keys (k): outputs → (B, 7, H)                │
+        │  • Values (v): outputs → (B, 7, H)              │
+        │                                                  │
+        │  attn_logits = (q @ k^T) / sqrt(H)              │
+        │  attn_weights = softmax(attn_logits)  (B, 7)    │
+        │  ctx = attn_weights @ v  →  (B, H)              │
+        └─────────────────────────────────────────────────┘
+                                │
+                                ▼
+                    ┌───────────────────────┐
+                    │  Context Vector       │
+                    │  ctx: (B, H=192)      │
+                    └───────────────────────┘
+                                │
+                ┌───────────────┴───────────────┐
+                │                               │
+                ▼                               ▼
+    ┌──────────────────────┐      ┌──────────────────────┐
+    │  last_h: (B, 192)    │      │  ctx: (B, 192)       │
+    └──────────────────────┘      └──────────────────────┘
+                │                               │
+                └───────────────┬───────────────┘
+                                │
+                                ▼
+                    ┌───────────────────────┐
+                    │  Concatenate          │
+                    │  rep: (B, 384)        │
+                    └───────────────────────┘
+                                │
+                                ▼
+                    ┌───────────────────────┐
+                    │  LayerNorm            │
+                    │  rep: (B, 384)        │
+                    └───────────────────────┘
+                                │
+                ┌───────────────┴───────────────┐
+                │                               │
+                ▼                               ▼
+    ┌──────────────────────┐      ┌──────────────────────┐
+    │  rep: (B, 384)       │      │  y7_log: (B, 1)      │
+    └──────────────────────┘      └──────────────────────┘
+                │                               │
+                └───────────────┬───────────────┘
+                                │
+                                ▼
+                    ┌───────────────────────┐
+                    │  Concatenate          │
+                    │  (B, 385)             │
+                    └───────────────────────┘
+                                │
+                                ▼
+                    ┌───────────────────────┐
+                    │  FC1 (Linear)         │
+                    │  385 → 128            │
+                    └───────────────────────┘
+                                │
+                                ▼
+                    ┌───────────────────────┐
+                    │  ReLU Activation      │
+                    └───────────────────────┘
+                                │
+                                ▼
+                    ┌───────────────────────┐
+                    │  Dropout (0.25)       │
+                    └───────────────────────┘
+                                │
+                                ▼
+                    ┌───────────────────────┐
+                    │  FC2 (Linear)         │
+                    │  128 → 1              │
+                    └───────────────────────┘
+                                │
+                                ▼
+                    ┌───────────────────────┐
+                    │  delta_log: (B, 1)    │
+                    └───────────────────────┘
+                                │
+                ┌───────────────┴───────────────┐
+                │                               │
+                ▼                               ▼
+    ┌──────────────────────┐      ┌──────────────────────┐
+    │  y7_log: (B, 1)      │  +   │  delta_log: (B, 1)   │
+    └──────────────────────┘      └──────────────────────┘
+                │                               │
+                └───────────────┬───────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                           OUTPUT                                                    │
+│  y8_log_hat: (B, 1) - Predicted log1p(Q8 price)                                    │
+│                                                                                     │
+│  Final Prediction: expm1(y8_log_hat) → Predicted Q8 Price                          │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+
+
+══════════════════════════════════════════════════════════════════════════════════════
+                                 KEY FEATURES
+══════════════════════════════════════════════════════════════════════════════════════
+
+1. LSTM Processing:
+   - Processes 7 quarters of financial data sequentially
+   - Captures temporal dependencies between quarters
+   - 2-layer architecture with dropout for regularization
+
+2. Attention Mechanism (CausalAttention):
+   - Computes importance weights for each of the 7 input quarters
+   - Uses last hidden state as query, all outputs as keys/values
+   - Attention weights show which quarters the model focuses on
+   - Context vector (ctx) is weighted sum of all outputs
+
+3. Residual Connection (Delta Prediction):
+   - Instead of predicting Q8 price directly, predicts change from Q7
+   - delta_log = predicted change in log-space
+   - y8_log_hat = y7_log + delta_log
+   - More stable training, easier to learn small changes
+
+4. Price Injection:
+   - Q7 price (y7_log) is explicitly concatenated before final layers
+   - Ensures model has direct access to current price information
+   - Helps with residual/delta prediction approach
+
+══════════════════════════════════════════════════════════════════════════════════════
+                            ATTENTION WEIGHTS EXPLAINED
+══════════════════════════════════════════════════════════════════════════════════════
+
+The attention weights are a vector of 7 values (one per quarter) that sum to 1.0:
+
+  [w1, w2, w3, w4, w5, w6, w7]
+
+Each weight wi indicates how much the model "attends to" or "focuses on" quarter i
+when making its prediction for Q8.
+
+Example:
+  If w7 = 0.4, w6 = 0.3, w5 = 0.2, and others are small:
+  → The model focuses most on recent quarters (Q5, Q6, Q7)
+
+  If w1 = 0.5, w2 = 0.3, and others are small:
+  → The model finds early quarters particularly important
+
+This provides interpretability - you can see which historical periods the model
+considers most relevant for each prediction.
+
+══════════════════════════════════════════════════════════════════════════════════════
