@@ -1,0 +1,81 @@
+SENIOR PROJECT PIPELINE ORDER
+========================================
+
+This file shows the correct order to run the files in the data pipeline.
+All scripts now use consistent data directory: data_pipeline/data/
+
+1. collect_sp500_data.py
+   Purpose: Downloads fundamental, price, earnings, and membership data for S&P 500 companies
+   Output: sp500_quarterly_membership.parquet, prices_daily.parquet, fundamentals_quarterly.parquet, earnings_data.parquet
+   Note: This is the main data collection script; does NOT collect transcripts to prevent overwrites
+
+2. collect_earnings_transcripts.py
+   Purpose: Downloads comprehensive earnings call transcripts filtered by S&P 500 membership
+   Output: text_raw_comprehensive.parquet (~30K transcripts, 2005-2025)
+   Note: MUST run this to get full historical transcripts; collect_sp500_data.py skips transcripts intentionally
+
+3. generate_text_embeddings.py
+   Purpose: Generates real Fin-E5 embeddings (4096-dim) for all earnings call transcripts
+   Output: text_embeddings.parquet
+   Note: Uses intfloat/e5-mistral-7b-instruct (state-of-the-art 2025); requires GPU for faster processing
+
+4. engineer_features.py
+   Purpose: Processes all collected data into model-ready features with technical indicators, fundamental ratios, and text embeddings (PCA reduced to 64-dim)
+   Output: quarters.parquet
+   Note: Loads precomputed embeddings from text_embeddings.parquet
+
+5. filter_by_transcripts.py
+   Purpose: Filters the quarters.parquet to only include entries that have associated earnings call transcripts
+   Output: quarters_with_transcripts.parquet
+   Note: Ensures every data point has an earnings call transcript (recommended for training)
+
+6. create_sequences.py
+   Purpose: Creates overlapping 8-quarter sequences for model training
+   Input: quarters_with_transcripts.parquet
+   Output: sequences_8q.parquet
+   Note: Generates all possible 8-quarter sequences with 1-quarter shifts (maximum data utilization)
+
+EXECUTION ORDER:
+================
+cd data_pipeline
+python collect_sp500_data.py 
+python collect_earnings_transcripts.py 
+python generate_text_embeddings.py
+python engineer_features.py
+python filter_by_transcripts.py
+python create_sequences.py
+
+INTERMEDIATE OUTPUT FILES:
+===========================
+data_pipeline/data/
+├── sp500_quarterly_membership.parquet  (S&P 500 membership by quarter)
+├── prices_daily.parquet                (Daily price data)
+├── fundamentals_quarterly.parquet      (Quarterly fundamentals)
+├── earnings_data.parquet               (Earnings data)
+├── text_raw_comprehensive.parquet      (Full earnings transcripts - ~30K transcripts)
+├── text_embeddings.parquet             (4096-dim Fin-E5 embeddings)
+├── quarters.parquet                    (All quarters with features)
+└── quarters_with_transcripts.parquet   (Filtered quarters with transcripts)
+
+FINAL TRAINING FILE:
+====================
+data_pipeline/data/sequences_8q.parquet
+
+This file contains overlapping 8-quarter sequences ready for model training.
+Each row represents one quarter within a sequence, grouped by 'sequence_id'.
+Columns include:
+- sequence_id: Unique identifier for each 8-quarter sequence
+- quarter_in_sequence: Position within sequence (0-7)
+- ticker, fiscal_quarter_end: Stock identifier and date
+- All technical indicators, fundamental ratios, and text embeddings (64-dim PCA)
+
+DATA FLOW SUMMARY:
+==================
+Raw data collection → Embeddings → Feature engineering → Transcript filtering → Sequence creation
+(Steps 1-2)          (Step 3)     (Step 4)              (Step 5)                (Step 6)
+
+The pipeline ensures:
+✓ All data uses consistent data_pipeline/data/ directory
+✓ Only quarters with earnings transcripts are included
+✓ Maximum sequence coverage with 1-quarter shifts
+✓ All features are ready for training (no additional preprocessing needed)
