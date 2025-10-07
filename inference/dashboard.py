@@ -283,7 +283,17 @@ def main():
 
     # Sidebar for configuration
     st.sidebar.header("Configuration")
-    model_path = st.sidebar.text_input("Model Path", "models/best_model.pt")
+
+    # Model selector
+    model_choice = st.sidebar.selectbox(
+        "Select Model",
+        ["With Price", "No Price"],
+        help="With Price: Uses price features. No Price: Excludes price features."
+    )
+
+    model_path = "models/best_model.pt" if model_choice == "With Price" else "models_no_price/best_model_no_price.pt"
+    st.sidebar.text(f"📁 {model_path}")
+
     data_dir = "data_pipeline/data"
 
     # Add prediction mode selector
