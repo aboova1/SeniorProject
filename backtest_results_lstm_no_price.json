@@ -1,0 +1,689 @@
+{
+  "summary": {
+    "total_quarters": 73,
+    "total_trades": 2987,
+    "total_long_positions": 1730,
+    "total_short_positions": 1257,
+    "total_invested": 298700.0,
+    "total_returns": 11370.220678352509,
+    "avg_return_per_quarter": 155.7564476486645,
+    "avg_return_per_trade": 3.806568690442755,
+    "overall_roi_pct": 3.806568690442755,
+    "long_positions": {
+      "total_invested": 173000.0,
+      "total_returns": 17021.197550531408,
+      "roi_pct": 9.838842514758039
+    },
+    "short_positions": {
+      "total_invested": 125700.0,
+      "total_returns": -5650.9768721789005,
+      "roi_pct": -4.495606103563167
+    },
+    "directional_accuracy": {
+      "overall_pct": 56.84633411449616,
+      "long_pct": 68.78612716763006,
+      "short_pct": 40.41368337311058,
+      "correct_long": 1190,
+      "correct_short": 508
+    }
+  },
+  "quarterly_results": [
+    {
+      "quarter_date": "2007-05-15 00:00:00",
+      "num_long_positions": 1,
+      "num_short_positions": 0,
+      "total_trades": 1,
+      "total_dollar_return": -5.9366348815749,
+      "avg_return_per_trade": -5.9366348815749,
+      "total_invested": 100.0
+    },
+    {
+      "quarter_date": "2007-08-14 00:00:00",
+      "num_long_positions": 2,
+      "num_short_positions": 3,
+      "total_trades": 5,
+      "total_dollar_return": -27.52186604593396,
+      "avg_return_per_trade": -5.5043732091867925,
+      "total_invested": 500.0
+    },
+    {
+      "quarter_date": "2007-11-14 00:00:00",
+      "num_long_positions": 2,
+      "num_short_positions": 3,
+      "total_trades": 5,
+      "total_dollar_return": -74.3134545785208,
+      "avg_return_per_trade": -14.86269091570416,
+      "total_invested": 500.0
+    },
+    {
+      "quarter_date": "2008-02-14 00:00:00",
+      "num_long_positions": 2,
+      "num_short_positions": 3,
+      "total_trades": 5,
+      "total_dollar_return": -30.486751641900003,
+      "avg_return_per_trade": -6.097350328380001,
+      "total_invested": 500.0
+    },
+    {
+      "quarter_date": "2008-05-15 00:00:00",
+      "num_long_positions": 2,
+      "num_short_positions": 4,
+      "total_trades": 6,
+      "total_dollar_return": -14.146741388546161,
+      "avg_return_per_trade": -2.35779023142436,
+      "total_invested": 600.0
+    },
+    {
+      "quarter_date": "2008-08-14 00:00:00",
+      "num_long_positions": 2,
+      "num_short_positions": 5,
+      "total_trades": 7,
+      "total_dollar_return": 135.32976552009288,
+      "avg_return_per_trade": 19.332823645727554,
+      "total_invested": 700.0
+    },
+    {
+      "quarter_date": "2008-11-14 00:00:00",
+      "num_long_positions": 2,
+      "num_short_positions": 5,
+      "total_trades": 7,
+      "total_dollar_return": 182.96386222031572,
+      "avg_return_per_trade": 26.137694602902247,
+      "total_invested": 700.0
+    },
+    {
+      "quarter_date": "2009-02-14 00:00:00",
+      "num_long_positions": 6,
+      "num_short_positions": 7,
+      "total_trades": 13,
+      "total_dollar_return": 35.996165370567724,
+      "avg_return_per_trade": 2.7689357977359785,
+      "total_invested": 1300.0
+    },
+    {
+      "quarter_date": "2009-05-15 00:00:00",
+      "num_long_positions": 16,
+      "num_short_positions": 8,
+      "total_trades": 24,
+      "total_dollar_return": 729.1771814311492,
+      "avg_return_per_trade": 30.382382559631214,
+      "total_invested": 2400.0
+    },
+    {
+      "quarter_date": "2009-08-14 00:00:00",
+      "num_long_positions": 19,
+      "num_short_positions": 12,
+      "total_trades": 31,
+      "total_dollar_return": 440.2885784769732,
+      "avg_return_per_trade": 14.202857370224942,
+      "total_invested": 3100.0
+    },
+    {
+      "quarter_date": "2009-11-14 00:00:00",
+      "num_long_positions": 14,
+      "num_short_positions": 16,
+      "total_trades": 30,
+      "total_dollar_return": 103.92243446003471,
+      "avg_return_per_trade": 3.4640811486678236,
+      "total_invested": 3000.0
+    },
+    {
+      "quarter_date": "2010-02-14 00:00:00",
+      "num_long_positions": 15,
+      "num_short_positions": 12,
+      "total_trades": 27,
+      "total_dollar_return": 38.73622906925504,
+      "avg_return_per_trade": 1.4346751507131497,
+      "total_invested": 2700.0
+    },
+    {
+      "quarter_date": "2010-05-15 00:00:00",
+      "num_long_positions": 11,
+      "num_short_positions": 11,
+      "total_trades": 22,
+      "total_dollar_return": 3.3015564049194905,
+      "avg_return_per_trade": 0.15007074567815867,
+      "total_invested": 2200.0
+    },
+    {
+      "quarter_date": "2010-08-14 00:00:00",
+      "num_long_positions": 16,
+      "num_short_positions": 6,
+      "total_trades": 22,
+      "total_dollar_return": 253.1914019327617,
+      "avg_return_per_trade": 11.508700087852803,
+      "total_invested": 2200.0
+    },
+    {
+      "quarter_date": "2010-11-14 00:00:00",
+      "num_long_positions": 17,
+      "num_short_positions": 6,
+      "total_trades": 23,
+      "total_dollar_return": 261.15133389205704,
+      "avg_return_per_trade": 11.354405821393785,
+      "total_invested": 2300.0
+    },
+    {
+      "quarter_date": "2011-02-14 00:00:00",
+      "num_long_positions": 15,
+      "num_short_positions": 9,
+      "total_trades": 24,
+      "total_dollar_return": 142.8466721541268,
+      "avg_return_per_trade": 5.951944673088616,
+      "total_invested": 2400.0
+    },
+    {
+      "quarter_date": "2011-05-15 00:00:00",
+      "num_long_positions": 13,
+      "num_short_positions": 11,
+      "total_trades": 24,
+      "total_dollar_return": -7.560583455759737,
+      "avg_return_per_trade": -0.3150243106566557,
+      "total_invested": 2400.0
+    },
+    {
+      "quarter_date": "2011-08-14 00:00:00",
+      "num_long_positions": 18,
+      "num_short_positions": 9,
+      "total_trades": 27,
+      "total_dollar_return": 117.11723741631154,
+      "avg_return_per_trade": 4.33767545986339,
+      "total_invested": 2700.0
+    },
+    {
+      "quarter_date": "2011-11-14 00:00:00",
+      "num_long_positions": 21,
+      "num_short_positions": 7,
+      "total_trades": 28,
+      "total_dollar_return": 648.4784513868556,
+      "avg_return_per_trade": 23.1599446923877,
+      "total_invested": 2800.0
+    },
+    {
+      "quarter_date": "2012-02-14 00:00:00",
+      "num_long_positions": 23,
+      "num_short_positions": 7,
+      "total_trades": 30,
+      "total_dollar_return": 308.4672253771582,
+      "avg_return_per_trade": 10.282240845905273,
+      "total_invested": 3000.0
+    },
+    {
+      "quarter_date": "2012-05-15 00:00:00",
+      "num_long_positions": 19,
+      "num_short_positions": 14,
+      "total_trades": 33,
+      "total_dollar_return": 152.48327609396614,
+      "avg_return_per_trade": 4.620705336180792,
+      "total_invested": 3300.0
+    },
+    {
+      "quarter_date": "2012-08-14 00:00:00",
+      "num_long_positions": 28,
+      "num_short_positions": 12,
+      "total_trades": 40,
+      "total_dollar_return": 224.36209448164,
+      "avg_return_per_trade": 5.609052362041,
+      "total_invested": 4000.0
+    },
+    {
+      "quarter_date": "2012-11-14 00:00:00",
+      "num_long_positions": 29,
+      "num_short_positions": 12,
+      "total_trades": 41,
+      "total_dollar_return": 371.31716087148925,
+      "avg_return_per_trade": 9.05651611881681,
+      "total_invested": 4100.0
+    },
+    {
+      "quarter_date": "2013-02-14 00:00:00",
+      "num_long_positions": 30,
+      "num_short_positions": 15,
+      "total_trades": 45,
+      "total_dollar_return": 307.9046846210187,
+      "avg_return_per_trade": 6.842326324911527,
+      "total_invested": 4500.0
+    },
+    {
+      "quarter_date": "2013-05-15 00:00:00",
+      "num_long_positions": 26,
+      "num_short_positions": 18,
+      "total_trades": 44,
+      "total_dollar_return": 24.591656298053685,
+      "avg_return_per_trade": 0.5589012795012201,
+      "total_invested": 4400.0
+    },
+    {
+      "quarter_date": "2013-08-14 00:00:00",
+      "num_long_positions": 24,
+      "num_short_positions": 20,
+      "total_trades": 44,
+      "total_dollar_return": 103.4182295688429,
+      "avg_return_per_trade": 2.3504143083827933,
+      "total_invested": 4400.0
+    },
+    {
+      "quarter_date": "2013-11-14 00:00:00",
+      "num_long_positions": 23,
+      "num_short_positions": 23,
+      "total_trades": 46,
+      "total_dollar_return": 70.61313630590254,
+      "avg_return_per_trade": 1.5350681805630988,
+      "total_invested": 4600.0
+    },
+    {
+      "quarter_date": "2014-02-14 00:00:00",
+      "num_long_positions": 20,
+      "num_short_positions": 25,
+      "total_trades": 45,
+      "total_dollar_return": 125.77342290252312,
+      "avg_return_per_trade": 2.7949649533894028,
+      "total_invested": 4500.0
+    },
+    {
+      "quarter_date": "2014-05-15 00:00:00",
+      "num_long_positions": 24,
+      "num_short_positions": 23,
+      "total_trades": 47,
+      "total_dollar_return": 2.7414529395872265,
+      "avg_return_per_trade": 0.05832878594866439,
+      "total_invested": 4700.0
+    },
+    {
+      "quarter_date": "2014-08-14 00:00:00",
+      "num_long_positions": 22,
+      "num_short_positions": 25,
+      "total_trades": 47,
+      "total_dollar_return": 112.78427447907758,
+      "avg_return_per_trade": 2.3996654144484593,
+      "total_invested": 4700.0
+    },
+    {
+      "quarter_date": "2014-11-14 00:00:00",
+      "num_long_positions": 28,
+      "num_short_positions": 21,
+      "total_trades": 49,
+      "total_dollar_return": 138.58273837195946,
+      "avg_return_per_trade": 2.8282191504481524,
+      "total_invested": 4900.0
+    },
+    {
+      "quarter_date": "2015-02-14 00:00:00",
+      "num_long_positions": 25,
+      "num_short_positions": 23,
+      "total_trades": 48,
+      "total_dollar_return": 53.24119950891977,
+      "avg_return_per_trade": 1.1091916564358286,
+      "total_invested": 4800.0
+    },
+    {
+      "quarter_date": "2015-05-15 00:00:00",
+      "num_long_positions": 22,
+      "num_short_positions": 25,
+      "total_trades": 47,
+      "total_dollar_return": 122.32831085730193,
+      "avg_return_per_trade": 2.6027300182404667,
+      "total_invested": 4700.0
+    },
+    {
+      "quarter_date": "2015-08-14 00:00:00",
+      "num_long_positions": 24,
+      "num_short_positions": 23,
+      "total_trades": 47,
+      "total_dollar_return": 206.04674394278058,
+      "avg_return_per_trade": 4.3839732753783105,
+      "total_invested": 4700.0
+    },
+    {
+      "quarter_date": "2015-11-14 00:00:00",
+      "num_long_positions": 31,
+      "num_short_positions": 16,
+      "total_trades": 47,
+      "total_dollar_return": 73.33858663000015,
+      "avg_return_per_trade": 1.5603954602127692,
+      "total_invested": 4700.0
+    },
+    {
+      "quarter_date": "2016-02-14 00:00:00",
+      "num_long_positions": 28,
+      "num_short_positions": 19,
+      "total_trades": 47,
+      "total_dollar_return": 136.76125480793286,
+      "avg_return_per_trade": 2.909813932083678,
+      "total_invested": 4700.0
+    },
+    {
+      "quarter_date": "2016-05-15 00:00:00",
+      "num_long_positions": 26,
+      "num_short_positions": 21,
+      "total_trades": 47,
+      "total_dollar_return": 104.46452497204902,
+      "avg_return_per_trade": 2.2226494674904047,
+      "total_invested": 4700.0
+    },
+    {
+      "quarter_date": "2016-08-14 00:00:00",
+      "num_long_positions": 27,
+      "num_short_positions": 19,
+      "total_trades": 46,
+      "total_dollar_return": 184.95601484675453,
+      "avg_return_per_trade": 4.020782931451185,
+      "total_invested": 4600.0
+    },
+    {
+      "quarter_date": "2016-11-14 00:00:00",
+      "num_long_positions": 26,
+      "num_short_positions": 20,
+      "total_trades": 46,
+      "total_dollar_return": 89.04976502142095,
+      "avg_return_per_trade": 1.935864456987412,
+      "total_invested": 4600.0
+    },
+    {
+      "quarter_date": "2017-02-14 00:00:00",
+      "num_long_positions": 27,
+      "num_short_positions": 18,
+      "total_trades": 45,
+      "total_dollar_return": 123.14803408703544,
+      "avg_return_per_trade": 2.736622979711899,
+      "total_invested": 4500.0
+    },
+    {
+      "quarter_date": "2017-05-15 00:00:00",
+      "num_long_positions": 25,
+      "num_short_positions": 21,
+      "total_trades": 46,
+      "total_dollar_return": -10.58717544856658,
+      "avg_return_per_trade": -0.23015598801231696,
+      "total_invested": 4600.0
+    },
+    {
+      "quarter_date": "2017-08-14 00:00:00",
+      "num_long_positions": 28,
+      "num_short_positions": 17,
+      "total_trades": 45,
+      "total_dollar_return": 235.8397776040885,
+      "avg_return_per_trade": 5.240883946757522,
+      "total_invested": 4500.0
+    },
+    {
+      "quarter_date": "2017-11-14 00:00:00",
+      "num_long_positions": 27,
+      "num_short_positions": 18,
+      "total_trades": 45,
+      "total_dollar_return": 126.29548192921413,
+      "avg_return_per_trade": 2.8065662650936476,
+      "total_invested": 4500.0
+    },
+    {
+      "quarter_date": "2018-02-14 00:00:00",
+      "num_long_positions": 25,
+      "num_short_positions": 21,
+      "total_trades": 46,
+      "total_dollar_return": 27.28419213933379,
+      "avg_return_per_trade": 0.5931346117246477,
+      "total_invested": 4600.0
+    },
+    {
+      "quarter_date": "2018-05-15 00:00:00",
+      "num_long_positions": 28,
+      "num_short_positions": 20,
+      "total_trades": 48,
+      "total_dollar_return": 53.02485484266698,
+      "avg_return_per_trade": 1.1046844758888954,
+      "total_invested": 4800.0
+    },
+    {
+      "quarter_date": "2018-08-14 00:00:00",
+      "num_long_positions": 29,
+      "num_short_positions": 19,
+      "total_trades": 48,
+      "total_dollar_return": 42.56149057533269,
+      "avg_return_per_trade": 0.8866977203194311,
+      "total_invested": 4800.0
+    },
+    {
+      "quarter_date": "2018-11-14 00:00:00",
+      "num_long_positions": 31,
+      "num_short_positions": 20,
+      "total_trades": 51,
+      "total_dollar_return": 240.11107434318112,
+      "avg_return_per_trade": 4.708060281238845,
+      "total_invested": 5100.0
+    },
+    {
+      "quarter_date": "2019-02-14 00:00:00",
+      "num_long_positions": 38,
+      "num_short_positions": 16,
+      "total_trades": 54,
+      "total_dollar_return": 547.2510624655101,
+      "avg_return_per_trade": 10.134278934546485,
+      "total_invested": 5400.0
+    },
+    {
+      "quarter_date": "2019-05-15 00:00:00",
+      "num_long_positions": 35,
+      "num_short_positions": 19,
+      "total_trades": 54,
+      "total_dollar_return": 286.9478930861255,
+      "avg_return_per_trade": 5.313849871965287,
+      "total_invested": 5400.0
+    },
+    {
+      "quarter_date": "2019-08-14 00:00:00",
+      "num_long_positions": 28,
+      "num_short_positions": 25,
+      "total_trades": 53,
+      "total_dollar_return": -34.08240905391227,
+      "avg_return_per_trade": -0.6430643217719296,
+      "total_invested": 5300.0
+    },
+    {
+      "quarter_date": "2019-11-14 00:00:00",
+      "num_long_positions": 29,
+      "num_short_positions": 25,
+      "total_trades": 54,
+      "total_dollar_return": -136.02498481413753,
+      "avg_return_per_trade": -2.518981200261806,
+      "total_invested": 5400.0
+    },
+    {
+      "quarter_date": "2020-02-14 00:00:00",
+      "num_long_positions": 28,
+      "num_short_positions": 25,
+      "total_trades": 53,
+      "total_dollar_return": -118.5341076645577,
+      "avg_return_per_trade": -2.2364925974444847,
+      "total_invested": 5300.0
+    },
+    {
+      "quarter_date": "2020-05-15 00:00:00",
+      "num_long_positions": 37,
+      "num_short_positions": 15,
+      "total_trades": 52,
+      "total_dollar_return": 478.8699085531491,
+      "avg_return_per_trade": 9.209036702945175,
+      "total_invested": 5200.0
+    },
+    {
+      "quarter_date": "2020-08-14 00:00:00",
+      "num_long_positions": 37,
+      "num_short_positions": 17,
+      "total_trades": 54,
+      "total_dollar_return": 686.2120549026363,
+      "avg_return_per_trade": 12.707630646345116,
+      "total_invested": 5400.0
+    },
+    {
+      "quarter_date": "2020-11-14 00:00:00",
+      "num_long_positions": 38,
+      "num_short_positions": 13,
+      "total_trades": 51,
+      "total_dollar_return": 1091.0306806849887,
+      "avg_return_per_trade": 21.3927584448037,
+      "total_invested": 5100.0
+    },
+    {
+      "quarter_date": "2021-02-14 00:00:00",
+      "num_long_positions": 36,
+      "num_short_positions": 16,
+      "total_trades": 52,
+      "total_dollar_return": 548.8219447435137,
+      "avg_return_per_trade": 10.554268168144493,
+      "total_invested": 5200.0
+    },
+    {
+      "quarter_date": "2021-05-15 00:00:00",
+      "num_long_positions": 33,
+      "num_short_positions": 20,
+      "total_trades": 53,
+      "total_dollar_return": 133.8185099190714,
+      "avg_return_per_trade": 2.5248775456428567,
+      "total_invested": 5300.0
+    },
+    {
+      "quarter_date": "2021-08-14 00:00:00",
+      "num_long_positions": 28,
+      "num_short_positions": 26,
+      "total_trades": 54,
+      "total_dollar_return": -52.604059758164965,
+      "avg_return_per_trade": -0.9741492547808327,
+      "total_invested": 5400.0
+    },
+    {
+      "quarter_date": "2021-11-14 00:00:00",
+      "num_long_positions": 26,
+      "num_short_positions": 27,
+      "total_trades": 53,
+      "total_dollar_return": -26.628598061420732,
+      "avg_return_per_trade": -0.5024263785173723,
+      "total_invested": 5300.0
+    },
+    {
+      "quarter_date": "2022-02-14 00:00:00",
+      "num_long_positions": 22,
+      "num_short_positions": 30,
+      "total_trades": 52,
+      "total_dollar_return": 256.3512176746274,
+      "avg_return_per_trade": 4.929831109127449,
+      "total_invested": 5200.0
+    },
+    {
+      "quarter_date": "2022-05-15 00:00:00",
+      "num_long_positions": 21,
+      "num_short_positions": 32,
+      "total_trades": 53,
+      "total_dollar_return": 244.31401052487087,
+      "avg_return_per_trade": 4.609698311790017,
+      "total_invested": 5300.0
+    },
+    {
+      "quarter_date": "2022-08-14 00:00:00",
+      "num_long_positions": 27,
+      "num_short_positions": 25,
+      "total_trades": 52,
+      "total_dollar_return": 150.93590624534522,
+      "avg_return_per_trade": 2.9026135816412544,
+      "total_invested": 5200.0
+    },
+    {
+      "quarter_date": "2022-11-14 00:00:00",
+      "num_long_positions": 35,
+      "num_short_positions": 18,
+      "total_trades": 53,
+      "total_dollar_return": 32.597834686370746,
+      "avg_return_per_trade": 0.6150534846485046,
+      "total_invested": 5300.0
+    },
+    {
+      "quarter_date": "2023-02-14 00:00:00",
+      "num_long_positions": 32,
+      "num_short_positions": 22,
+      "total_trades": 54,
+      "total_dollar_return": -77.20670733466744,
+      "avg_return_per_trade": -1.4297538395308786,
+      "total_invested": 5400.0
+    },
+    {
+      "quarter_date": "2023-05-15 00:00:00",
+      "num_long_positions": 34,
+      "num_short_positions": 20,
+      "total_trades": 54,
+      "total_dollar_return": -221.8507781303196,
+      "avg_return_per_trade": -4.1083477431540665,
+      "total_invested": 5400.0
+    },
+    {
+      "quarter_date": "2023-08-14 00:00:00",
+      "num_long_positions": 33,
+      "num_short_positions": 21,
+      "total_trades": 54,
+      "total_dollar_return": 166.24028845079627,
+      "avg_return_per_trade": 3.078523860199931,
+      "total_invested": 5400.0
+    },
+    {
+      "quarter_date": "2023-11-14 00:00:00",
+      "num_long_positions": 37,
+      "num_short_positions": 17,
+      "total_trades": 54,
+      "total_dollar_return": 670.0707157142973,
+      "avg_return_per_trade": 12.408716957672173,
+      "total_invested": 5400.0
+    },
+    {
+      "quarter_date": "2024-02-14 00:00:00",
+      "num_long_positions": 33,
+      "num_short_positions": 23,
+      "total_trades": 56,
+      "total_dollar_return": -43.92286548828856,
+      "avg_return_per_trade": -0.7843368837194385,
+      "total_invested": 5600.0
+    },
+    {
+      "quarter_date": "2024-05-15 00:00:00",
+      "num_long_positions": 29,
+      "num_short_positions": 26,
+      "total_trades": 55,
+      "total_dollar_return": 122.20908673315499,
+      "avg_return_per_trade": 2.2219833951482726,
+      "total_invested": 5500.0
+    },
+    {
+      "quarter_date": "2024-08-14 00:00:00",
+      "num_long_positions": 32,
+      "num_short_positions": 23,
+      "total_trades": 55,
+      "total_dollar_return": 220.48571804607874,
+      "avg_return_per_trade": 4.008831237201432,
+      "total_invested": 5500.0
+    },
+    {
+      "quarter_date": "2024-11-14 00:00:00",
+      "num_long_positions": 28,
+      "num_short_positions": 29,
+      "total_trades": 57,
+      "total_dollar_return": 3.7479519536408983,
+      "avg_return_per_trade": 0.06575354304633155,
+      "total_invested": 5700.0
+    },
+    {
+      "quarter_date": "2025-02-14 00:00:00",
+      "num_long_positions": 29,
+      "num_short_positions": 26,
+      "total_trades": 55,
+      "total_dollar_return": -28.35160504996492,
+      "avg_return_per_trade": -0.5154837281811804,
+      "total_invested": 5500.0
+    },
+    {
+      "quarter_date": "2025-05-15 00:00:00",
+      "num_long_positions": 26,
+      "num_short_positions": 29,
+      "total_trades": 55,
+      "total_dollar_return": -213.91631139008513,
+      "avg_return_per_trade": -3.8893874798197294,
+      "total_invested": 5500.0
+    }
+  ]
+}

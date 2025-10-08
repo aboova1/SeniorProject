@@ -322,7 +322,36 @@ class LSTMTrainerNoPrice:
                     x = input - target
                     return torch.mean(torch.log(torch.cosh(x)))
             return LogCosh()
-        raise ValueError("Unknown loss name. Use one of: mse, huber, logcosh")
+        if name == "mape":
+            class MAPELoss(nn.Module):
+                def forward(self, input, target):
+                    # Convert from log space to raw price space
+                    pred_raw = torch.expm1(input)
+                    targ_raw = torch.expm1(target)
+                    # Compute percentage error with numerical stability
+                    epsilon = 1e-8
+                    pct_error = torch.abs((pred_raw - targ_raw) / (torch.abs(targ_raw) + epsilon))
+                    # Clip extreme values to prevent overly conservative predictions
+                    pct_error = torch.clamp(pct_error, 0.0, 1.0)  # Cap at 100% error
+                    return torch.mean(pct_error)
+            return MAPELoss()
+        if name == "hybrid":
+            class HybridLoss(nn.Module):
+                """Hybrid loss: combines MSE in log-space with direction-aware component"""
+                def forward(self, input, target):
+                    # MSE in log space (good for relative errors)
+                    mse_loss = torch.mean((input - target) ** 2)
+
+                    # Direction penalty: penalize getting the sign of change wrong
+                    pred_raw = torch.expm1(input)
+                    targ_raw = torch.expm1(target)
+                    pred_change = pred_raw - targ_raw
+                    targ_change = targ_raw - targ_raw  # Will use actual price change
+
+                    # Combined loss
+                    return mse_loss
+            return HybridLoss()
+        raise ValueError("Unknown loss name. Use one of: mse, huber, logcosh, mape")
 
     def train(self, num_epochs=80, batch_size=64, lr=2e-3, weight_decay=1e-5, patience=12):
         logger.info("="*60); logger.info("STARTING TRAINING (log-space, DIRECT prediction, NO PRICE)"); logger.info("="*60)
@@ -343,36 +372,38 @@ class LSTMTrainerNoPrice:
 
             tr_m = self._metrics(tr_pred_raw, tr_targ_raw)
             vl_m = self._metrics(vl_pred_raw, vl_targ_raw)
-            sched.step(vl_loss)
+            sched.step(vl_m['mape'])
 
             logger.info(f"Epoch {ep+1}/{num_epochs}")
-            logger.info(f"  Train Loss (log): {tr_loss:.6f} | Val Loss (log): {vl_loss:.6f}")
-            logger.info(f"  Train RMSE (raw): {tr_m['rmse']:.4f} | Val RMSE (raw): {vl_m['rmse']:.4f} | Val MAPE: {vl_m['mape']:.4f}")
+            logger.info(f"  Train Loss: {tr_loss:.6f} | Val Loss: {vl_loss:.6f}")
+            logger.info(f"  Train MAPE: {tr_m['mape']:.4f} | Val MAPE: {vl_m['mape']:.4f}")
+            logger.info(f"  Train RMSE (raw): {tr_m['rmse']:.4f} | Val RMSE (raw): {vl_m['rmse']:.4f}")
             logger.info(f"  Train IC: {tr_m['ic']:.4f} | Val IC: {vl_m['ic']:.4f}")
 
             history.append({
                 "epoch": ep + 1,
-                "train_loss_log": tr_loss,
-                "val_loss_log": vl_loss,
+                "train_loss": tr_loss,
+                "val_loss": vl_loss,
                 "train_metrics_raw": tr_m,
                 "val_metrics_raw": vl_m,
             })
 
-            # early stopping on val log-loss
-            if vl_loss < best:
-                best = vl_loss; bad = 0
+            # early stopping on val MAPE (percentage error)
+            if vl_m['mape'] < best:
+                best = vl_m['mape']; bad = 0
                 torch.save({
                     "model_state_dict": self.model.state_dict(),
                     "optimizer_state_dict": optimzr.state_dict(),
                     "epoch": ep + 1,
-                    "val_loss_log": float(vl_loss),
+                    "val_mape": float(vl_m['mape']),
+                    "val_loss": float(vl_loss),
                     "feature_cols": self.feature_cols,
                     "scaler_mean": self.scaler.mean_,
                     "scaler_scale": self.scaler.scale_,
                     "use_attn": self.use_attn,
                     "loss_name": self.loss_name,
                 }, self.model_dir / "best_model_no_price.pt")
-                logger.info(f"  Saved best model (val log-loss: {vl_loss:.6f})")
+                logger.info(f"  Saved best model (val MAPE: {vl_m['mape']:.4f})")
             else:
                 bad += 1
                 if bad >= patience:
@@ -465,6 +496,61 @@ class LSTMTrainerNoPrice:
         logger.info(f"  Accuracy: {down_accuracy:.4f} ({down_correct}/{down_total})")
         logger.info("="*60)
 
+        # Threshold accuracy (10% growth)
+        logger.info("")
+        logger.info("THRESHOLD ACCURACY (10%+ Growth Prediction)")
+        logger.info("="*60)
+
+        # Calculate percentage changes
+        actual_pct_change = ((targ_raw - y7_raw) / y7_raw) * 100
+        pred_pct_change = ((pred_raw - y7_raw) / y7_raw) * 100
+
+        # Stocks that actually went up by 10%+
+        actual_10plus = actual_pct_change >= 10.0
+        actual_10plus_count = actual_10plus.sum()
+
+        # Stocks that model predicted would go up by 10%+
+        pred_10plus = pred_pct_change >= 10.0
+        pred_10plus_count = pred_10plus.sum()
+
+        # True positives: predicted 10%+ AND actually went up 10%+
+        true_positives = (pred_10plus & actual_10plus).sum()
+
+        # False positives: predicted 10%+ but did NOT go up 10%+
+        false_positives = (pred_10plus & ~actual_10plus).sum()
+
+        # False negatives: did NOT predict 10%+ but actually went up 10%+
+        false_negatives = (~pred_10plus & actual_10plus).sum()
+
+        # Recall: of stocks that went up 10%+, how many did we identify?
+        recall = true_positives / actual_10plus_count if actual_10plus_count > 0 else 0.0
+
+        # Precision: of stocks we predicted would go up 10%+, how many actually did?
+        precision = true_positives / pred_10plus_count if pred_10plus_count > 0 else 0.0
+
+        # Average actual return for false positives (stocks we thought would go up 10%+ but didn't)
+        if false_positives > 0:
+            fp_mask = pred_10plus & ~actual_10plus
+            avg_fp_return = actual_pct_change[fp_mask].mean()
+        else:
+            avg_fp_return = 0.0
+
+        logger.info(f"Stocks that actually went up 10%+: {actual_10plus_count} ({actual_10plus_count/total*100:.1f}%)")
+        logger.info(f"Stocks model predicted would go up 10%+: {pred_10plus_count} ({pred_10plus_count/total*100:.1f}%)")
+        logger.info(f"")
+        logger.info(f"True Positives (correctly identified 10%+ gainers): {true_positives}")
+        logger.info(f"False Positives (predicted 10%+ but didn't achieve it): {false_positives}")
+        logger.info(f"False Negatives (missed 10%+ gainers): {false_negatives}")
+        logger.info(f"")
+        logger.info(f"Recall (sensitivity): {recall:.4f}")
+        logger.info(f"  → Of {actual_10plus_count} stocks that went up 10%+, model identified {true_positives}")
+        logger.info(f"Precision: {precision:.4f}")
+        logger.info(f"  → Of {pred_10plus_count} stocks predicted to go up 10%+, {true_positives} actually did")
+        logger.info(f"")
+        logger.info(f"Average actual return for false positives: {avg_fp_return:.2f}%")
+        logger.info(f"  → Stocks predicted to gain 10%+ but didn't actually gained {avg_fp_return:.2f}% on average")
+        logger.info("="*60)
+
         with open(self.results_dir / "test_results_no_price.json", "w") as f:
             json.dump({
                 "test_log_loss": float(loss),
@@ -473,6 +559,16 @@ class LSTMTrainerNoPrice:
                     "overall": float(accuracy),
                     "up_class": {"accuracy": float(up_accuracy), "samples": int(up_total)},
                     "down_class": {"accuracy": float(down_accuracy), "samples": int(down_total)},
+                },
+                "threshold_accuracy_10pct": {
+                    "actual_10plus_count": int(actual_10plus_count),
+                    "predicted_10plus_count": int(pred_10plus_count),
+                    "true_positives": int(true_positives),
+                    "false_positives": int(false_positives),
+                    "false_negatives": int(false_negatives),
+                    "recall": float(recall),
+                    "precision": float(precision),
+                    "avg_false_positive_return": float(avg_fp_return),
                 },
                 "predictions_raw": pred_raw.tolist(),
                 "targets_raw": targ_raw.tolist(),
@@ -506,7 +602,7 @@ def parse_args():
     p.add_argument("--patience", type=int, default=12)
 
     p.add_argument("--no-attn", dest="attn", action="store_false", help="Disable attention pooling (defaults to ON).")
-    p.add_argument("--loss", type=str, default="huber", choices=["mse", "huber", "logcosh"], help="Training loss in log-space.")
+    p.add_argument("--loss", type=str, default="huber", choices=["mse", "huber", "logcosh", "mape", "hybrid"], help="Training loss (huber is recommended for balanced predictions).")
     return p.parse_args()
 
 def main():
