@@ -31,9 +31,10 @@ class CausalAttention(torch.nn.Module):
         return ctx, attn.squeeze(1)
 
 class UniLSTMAttnDelta(torch.nn.Module):
-    def __init__(self, input_size: int, hidden_size: int = 192, num_layers: int = 2, dropout: float = 0.25, use_attn: bool = True):
+    def __init__(self, input_size: int, hidden_size: int = 192, num_layers: int = 2, dropout: float = 0.25, use_attn: bool = True, legacy_fc1: bool = False):
         super().__init__()
         self.use_attn = use_attn
+        self.legacy_fc1 = legacy_fc1
         self.lstm = torch.nn.LSTM(
             input_size=input_size,
             hidden_size=hidden_size,
@@ -45,7 +46,9 @@ class UniLSTMAttnDelta(torch.nn.Module):
         self.attn = CausalAttention(hidden_size) if use_attn else None
         rep_dim = hidden_size * (2 if use_attn else 1)
         self.ln = torch.nn.LayerNorm(rep_dim)
-        self.fc1 = torch.nn.Linear(rep_dim + 1, 128)
+        # Legacy models concatenate y7_log after fc1, new models before
+        fc1_input_dim = rep_dim if legacy_fc1 else rep_dim + 1
+        self.fc1 = torch.nn.Linear(fc1_input_dim, 128)
         self.act = torch.nn.ReLU()
         self.drop = torch.nn.Dropout(dropout)
         self.fc2 = torch.nn.Linear(128, 1)
@@ -60,12 +63,52 @@ class UniLSTMAttnDelta(torch.nn.Module):
             rep = last_h
             attn_weights = None
         rep = self.ln(rep)
-        rep = torch.cat([rep, y7_log], dim=1)
+        if not self.legacy_fc1:
+            rep = torch.cat([rep, y7_log], dim=1)
         z = self.fc1(rep)
         z = self.act(z)
         z = self.drop(z)
         delta_log = self.fc2(z)
         y8_log_hat = y7_log + delta_log
+        return y8_log_hat, delta_log, attn_weights
+
+class UniLSTMAttnDirect(torch.nn.Module):
+    """LSTM that predicts Q8 price DIRECTLY (no Q7 price input, no residual)"""
+    def __init__(self, input_size: int, hidden_size: int = 192, num_layers: int = 2, dropout: float = 0.25, use_attn: bool = True):
+        super().__init__()
+        self.use_attn = use_attn
+        self.lstm = torch.nn.LSTM(
+            input_size=input_size,
+            hidden_size=hidden_size,
+            num_layers=num_layers,
+            batch_first=True,
+            dropout=dropout if num_layers > 1 else 0.0,
+            bidirectional=False,
+        )
+        self.attn = CausalAttention(hidden_size) if use_attn else None
+        rep_dim = hidden_size * (2 if use_attn else 1)
+        self.ln = torch.nn.LayerNorm(rep_dim)
+        self.fc1 = torch.nn.Linear(rep_dim, 128)
+        self.act = torch.nn.ReLU()
+        self.drop = torch.nn.Dropout(dropout)
+        self.fc2 = torch.nn.Linear(128, 1)
+
+    def forward(self, x: torch.Tensor, y7_log: torch.Tensor = None):
+        outputs, (h, _) = self.lstm(x)
+        last_h = h[-1]
+        if self.use_attn:
+            ctx, attn_weights = self.attn(outputs, last_h)
+            rep = torch.cat([last_h, ctx], dim=1)
+        else:
+            rep = last_h
+            attn_weights = None
+        rep = self.ln(rep)
+        z = self.fc1(rep)
+        z = self.act(z)
+        z = self.drop(z)
+        y8_log_hat = self.fc2(z)
+        # For compatibility, return same format as Delta model
+        delta_log = y8_log_hat - y7_log if y7_log is not None else torch.zeros_like(y8_log_hat)
         return y8_log_hat, delta_log, attn_weights
 
 # ----------------------------- Dashboard ----------------------------------
@@ -82,11 +125,33 @@ def load_model(model_path: str):
     logger.info(f"Loading model from {model_path}")
     ckpt = torch.load(model_path, map_location=device, weights_only=False)
 
-    # Recreate model architecture from checkpoint
-    model = UniLSTMAttnDelta(
-        input_size=len(ckpt["feature_cols"]),
-        use_attn=ckpt.get("use_attn", True)
-    )
+    # Detect model type by checking fc1.weight shape
+    fc1_weight_shape = ckpt["model_state_dict"]["fc1.weight"].shape
+    use_attn = ckpt.get("use_attn", True)
+    hidden_size = 192  # Default from checkpoint
+    rep_dim = hidden_size * (2 if use_attn else 1)
+
+    # Determine model type:
+    # - UniLSTMAttnDirect: fc1 input = rep_dim (no y7_log)
+    # - UniLSTMAttnDelta (legacy): fc1 input = rep_dim (y7_log added after fc1)
+    # - UniLSTMAttnDelta (new): fc1 input = rep_dim + 1 (y7_log added before fc1)
+    fc1_input_size = fc1_weight_shape[1]
+
+    if fc1_input_size == rep_dim:
+        # Could be Direct or legacy Delta - check if model predicts directly
+        # Direct models don't use residual connection, so we use Direct model
+        model = UniLSTMAttnDirect(
+            input_size=len(ckpt["feature_cols"]),
+            use_attn=use_attn
+        )
+    else:  # fc1_input_size == rep_dim + 1
+        # New Delta model
+        model = UniLSTMAttnDelta(
+            input_size=len(ckpt["feature_cols"]),
+            use_attn=use_attn,
+            legacy_fc1=False
+        )
+
     model.load_state_dict(ckpt["model_state_dict"])
     model.to(device)
     model.eval()

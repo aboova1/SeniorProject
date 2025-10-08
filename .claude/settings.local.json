@@ -22,7 +22,8 @@
       "Bash(git push:*)",
       "Bash(git lfs:*)",
       "Bash(git rm:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(del test_model_load.py)"
     ],
     "deny": [],
     "ask": []
