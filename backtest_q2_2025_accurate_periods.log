@@ -1,0 +1,26 @@
+2025-10-13 17:32:43,676 - INFO - Using device: cuda
+2025-10-13 17:32:43,676 - INFO - Loading model from models\best_model.pt
+2025-10-13 17:32:43,773 - INFO - Model loaded successfully
+2025-10-13 17:32:43,773 - INFO - Loading sequences from train, val, and test sets...
+2025-10-13 17:32:43,806 - INFO -   Train: 19120 rows, 101 tickers
+2025-10-13 17:32:43,812 - INFO -   Val: 3728 rows, 22 tickers
+2025-10-13 17:32:43,819 - INFO -   Test: 4776 rows, 21 tickers
+2025-10-13 17:32:43,824 - INFO - Combined: 27624 rows, 3453 sequences, 144 unique tickers
+2025-10-13 17:32:43,870 - INFO - Period start timing: Min=-5d, Max=31d, Mean=22.0d, Median=22d
+Traceback (most recent call last):
+  File "C:\Users\fires\OneDrive\Desktop\SeniorProject\backtest_q2_2025.py", line 486, in <module>
+    main()
+  File "C:\Users\fires\OneDrive\Desktop\SeniorProject\backtest_q2_2025.py", line 379, in main
+    sequences_df = load_q2_2025_sequences(
+                   ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\fires\OneDrive\Desktop\SeniorProject\backtest_q2_2025.py", line 166, in load_q2_2025_sequences
+    X = feat_rows[feature_cols].copy()
+        ~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Users\fires\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\pandas\core\frame.py", line 4108, in __getitem__
+    indexer = self.columns._get_indexer_strict(key, "columns")[1]
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\fires\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "C:\Users\fires\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\pandas\core\indexes\base.py", line 6252, in _raise_if_missing
+    raise KeyError(f"{not_found} not in index")
+KeyError: "['lag_days'] not in index"

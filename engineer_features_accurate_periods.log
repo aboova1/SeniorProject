@@ -1,0 +1,280 @@
+2025-10-13 17:18:12,552 - INFO - Creating master quarters table...
+2025-10-13 17:18:12,552 - INFO - Loading data files from precise collector...
+2025-10-13 17:18:12,695 - INFO - Loaded membership data: 46020 ticker-quarter combinations
+2025-10-13 17:18:12,695 - INFO - Loaded price data: 3491341 daily observations
+2025-10-13 17:18:12,695 - INFO - Loaded fundamentals: 55746 quarterly observations
+2025-10-13 17:18:12,695 - INFO - Loaded earnings: 52345 earnings records
+2025-10-13 17:18:12,695 - INFO - Creating sector mapping...
+2025-10-13 17:18:12,696 - INFO - Created sector mapping for 923 tickers
+2025-10-13 17:18:12,696 - INFO - Calculating fundamental features...
+2025-10-13 17:18:12,741 - INFO - Fundamental features calculated
+2025-10-13 17:18:12,741 - INFO - Calculating technical indicators...
+2025-10-13 17:18:12,813 - INFO - Calculating technical indicators for 923 S&P 500 companies
+2025-10-13 17:18:12,813 - INFO - Using 8 parallel workers
+2025-10-13 17:19:15,609 - INFO - Processing batch 1/19 (tickers 1-50)
+2025-10-13 17:19:21,105 - INFO - Technical indicators progress: 10/923
+2025-10-13 17:19:27,488 - INFO - Technical indicators progress: 20/923
+2025-10-13 17:19:31,801 - INFO - Technical indicators progress: 30/923
+2025-10-13 17:19:36,304 - INFO - Technical indicators progress: 40/923
+2025-10-13 17:19:42,873 - INFO - Technical indicators progress: 50/923
+2025-10-13 17:19:43,005 - INFO - Processing batch 2/19 (tickers 51-100)
+2025-10-13 17:19:45,681 - INFO - Technical indicators progress: 60/923
+2025-10-13 17:19:52,848 - INFO - Technical indicators progress: 70/923
+2025-10-13 17:19:57,230 - INFO - Technical indicators progress: 80/923
+2025-10-13 17:19:59,871 - INFO - Technical indicators progress: 90/923
+2025-10-13 17:20:05,232 - INFO - Technical indicators progress: 100/923
+2025-10-13 17:20:05,348 - INFO - Processing batch 3/19 (tickers 101-150)
+2025-10-13 17:20:08,381 - INFO - Technical indicators progress: 110/923
+2025-10-13 17:20:12,581 - INFO - Technical indicators progress: 120/923
+2025-10-13 17:20:16,987 - INFO - Technical indicators progress: 130/923
+2025-10-13 17:20:24,505 - INFO - Technical indicators progress: 140/923
+2025-10-13 17:20:30,793 - INFO - Technical indicators progress: 150/923
+2025-10-13 17:20:30,915 - INFO - Processing batch 4/19 (tickers 151-200)
+2025-10-13 17:20:35,188 - INFO - Technical indicators progress: 160/923
+2025-10-13 17:20:40,157 - INFO - Technical indicators progress: 170/923
+2025-10-13 17:20:46,605 - INFO - Technical indicators progress: 180/923
+2025-10-13 17:20:50,155 - INFO - Technical indicators progress: 190/923
+2025-10-13 17:20:58,568 - INFO - Technical indicators progress: 200/923
+2025-10-13 17:20:58,700 - INFO - Processing batch 5/19 (tickers 201-250)
+2025-10-13 17:21:06,999 - INFO - Technical indicators progress: 210/923
+2025-10-13 17:21:13,652 - INFO - Technical indicators progress: 220/923
+2025-10-13 17:21:18,151 - INFO - Technical indicators progress: 230/923
+2025-10-13 17:21:23,622 - INFO - Technical indicators progress: 240/923
+2025-10-13 17:21:28,284 - INFO - Technical indicators progress: 250/923
+2025-10-13 17:21:28,412 - INFO - Processing batch 6/19 (tickers 251-300)
+2025-10-13 17:21:35,634 - INFO - Technical indicators progress: 260/923
+2025-10-13 17:21:37,227 - INFO - Technical indicators progress: 270/923
+2025-10-13 17:21:42,837 - INFO - Technical indicators progress: 280/923
+2025-10-13 17:21:48,243 - INFO - Technical indicators progress: 290/923
+2025-10-13 17:21:54,328 - INFO - Technical indicators progress: 300/923
+2025-10-13 17:21:54,458 - INFO - Processing batch 7/19 (tickers 301-350)
+2025-10-13 17:22:03,002 - INFO - Technical indicators progress: 310/923
+2025-10-13 17:22:05,332 - INFO - Technical indicators progress: 320/923
+2025-10-13 17:22:11,278 - INFO - Technical indicators progress: 330/923
+2025-10-13 17:22:16,944 - INFO - Technical indicators progress: 340/923
+2025-10-13 17:22:23,119 - INFO - Technical indicators progress: 350/923
+2025-10-13 17:22:23,251 - INFO - Processing batch 8/19 (tickers 351-400)
+2025-10-13 17:22:31,052 - INFO - Technical indicators progress: 360/923
+2025-10-13 17:22:34,754 - INFO - Technical indicators progress: 370/923
+2025-10-13 17:22:37,595 - INFO - Technical indicators progress: 380/923
+2025-10-13 17:22:41,870 - INFO - Technical indicators progress: 390/923
+2025-10-13 17:22:50,137 - INFO - Technical indicators progress: 400/923
+2025-10-13 17:22:50,263 - INFO - Processing batch 9/19 (tickers 401-450)
+2025-10-13 17:22:53,615 - INFO - Technical indicators progress: 410/923
+2025-10-13 17:22:59,972 - INFO - Technical indicators progress: 420/923
+2025-10-13 17:23:05,303 - INFO - Technical indicators progress: 430/923
+2025-10-13 17:23:08,674 - INFO - Technical indicators progress: 440/923
+2025-10-13 17:23:14,931 - INFO - Technical indicators progress: 450/923
+2025-10-13 17:23:15,061 - INFO - Processing batch 10/19 (tickers 451-500)
+2025-10-13 17:23:22,909 - INFO - Technical indicators progress: 460/923
+2025-10-13 17:23:29,757 - INFO - Technical indicators progress: 470/923
+2025-10-13 17:23:32,775 - INFO - Technical indicators progress: 480/923
+2025-10-13 17:23:35,993 - INFO - Technical indicators progress: 490/923
+2025-10-13 17:23:41,997 - INFO - Technical indicators progress: 500/923
+2025-10-13 17:23:42,124 - INFO - Processing batch 11/19 (tickers 501-550)
+2025-10-13 17:23:47,193 - INFO - Technical indicators progress: 510/923
+2025-10-13 17:23:50,602 - INFO - Technical indicators progress: 520/923
+2025-10-13 17:23:54,145 - INFO - Technical indicators progress: 530/923
+2025-10-13 17:24:00,822 - INFO - Technical indicators progress: 540/923
+2025-10-13 17:24:07,238 - INFO - Technical indicators progress: 550/923
+2025-10-13 17:24:07,360 - INFO - Processing batch 12/19 (tickers 551-600)
+2025-10-13 17:24:17,852 - INFO - Technical indicators progress: 560/923
+2025-10-13 17:24:21,896 - INFO - Technical indicators progress: 570/923
+2025-10-13 17:24:25,878 - INFO - Technical indicators progress: 580/923
+2025-10-13 17:24:32,727 - INFO - Technical indicators progress: 590/923
+2025-10-13 17:24:36,432 - INFO - Technical indicators progress: 600/923
+2025-10-13 17:24:36,562 - INFO - Processing batch 13/19 (tickers 601-650)
+2025-10-13 17:24:45,381 - INFO - Technical indicators progress: 610/923
+2025-10-13 17:24:48,595 - INFO - Technical indicators progress: 620/923
+2025-10-13 17:24:53,788 - INFO - Technical indicators progress: 630/923
+2025-10-13 17:25:00,725 - INFO - Technical indicators progress: 640/923
+2025-10-13 17:25:08,486 - INFO - Technical indicators progress: 650/923
+2025-10-13 17:25:08,620 - INFO - Processing batch 14/19 (tickers 651-700)
+2025-10-13 17:25:23,721 - INFO - Technical indicators progress: 660/923
+2025-10-13 17:25:30,935 - INFO - Technical indicators progress: 670/923
+2025-10-13 17:25:36,365 - INFO - Technical indicators progress: 680/923
+2025-10-13 17:25:41,568 - INFO - Technical indicators progress: 690/923
+2025-10-13 17:25:49,888 - INFO - Technical indicators progress: 700/923
+2025-10-13 17:25:50,006 - INFO - Processing batch 15/19 (tickers 701-750)
+2025-10-13 17:25:59,162 - INFO - Technical indicators progress: 710/923
+2025-10-13 17:26:03,082 - INFO - Technical indicators progress: 720/923
+2025-10-13 17:26:06,581 - INFO - Technical indicators progress: 730/923
+2025-10-13 17:26:10,404 - INFO - Technical indicators progress: 740/923
+2025-10-13 17:26:13,928 - INFO - Technical indicators progress: 750/923
+2025-10-13 17:26:14,044 - INFO - Processing batch 16/19 (tickers 751-800)
+2025-10-13 17:26:19,383 - INFO - Technical indicators progress: 760/923
+2025-10-13 17:26:22,551 - INFO - Technical indicators progress: 770/923
+2025-10-13 17:26:25,816 - INFO - Technical indicators progress: 780/923
+2025-10-13 17:26:28,627 - INFO - Technical indicators progress: 790/923
+2025-10-13 17:26:31,633 - INFO - Technical indicators progress: 800/923
+2025-10-13 17:26:31,762 - INFO - Processing batch 17/19 (tickers 801-850)
+2025-10-13 17:26:36,341 - INFO - Technical indicators progress: 810/923
+2025-10-13 17:26:38,158 - INFO - Technical indicators progress: 820/923
+2025-10-13 17:26:40,293 - INFO - Technical indicators progress: 830/923
+2025-10-13 17:26:41,922 - INFO - Technical indicators progress: 840/923
+2025-10-13 17:26:43,676 - INFO - Technical indicators progress: 850/923
+2025-10-13 17:26:43,792 - INFO - Processing batch 18/19 (tickers 851-900)
+2025-10-13 17:26:46,183 - INFO - Technical indicators progress: 860/923
+2025-10-13 17:26:47,657 - INFO - Technical indicators progress: 870/923
+2025-10-13 17:26:48,504 - INFO - Technical indicators progress: 880/923
+2025-10-13 17:26:49,220 - INFO - Technical indicators progress: 890/923
+2025-10-13 17:26:49,674 - INFO - Technical indicators progress: 900/923
+2025-10-13 17:26:49,790 - INFO - Processing batch 19/19 (tickers 901-923)
+2025-10-13 17:26:50,990 - INFO - Technical indicators progress: 910/923
+2025-10-13 17:26:51,142 - INFO - Technical indicators progress: 920/923
+2025-10-13 17:26:51,384 - INFO - Calculated technical indicators for 37500 ticker-quarter observations
+2025-10-13 17:26:51,397 - INFO - Loading precomputed FinBERT embeddings...
+2025-10-13 17:26:51,764 - INFO - Loaded 28917 precomputed embeddings
+2025-10-13 17:26:52,706 - INFO - PCA explained variance: 70.61%
+2025-10-13 17:26:52,713 - INFO - Processed embeddings: 28917 documents with 32 PCA features
+2025-10-13 17:26:52,748 - INFO - Calculating target share prices...
+2025-10-13 17:26:52,749 - INFO - Processing target prices for 923 tickers
+2025-10-13 17:26:52,749 - INFO - Using 8 parallel workers
+2025-10-13 17:27:54,999 - INFO - Processing batch 1/19 (tickers 1-50)
+2025-10-13 17:27:55,841 - INFO - Target prices progress: 10/923
+2025-10-13 17:27:55,905 - INFO - Target prices progress: 20/923
+2025-10-13 17:27:55,967 - INFO - Target prices progress: 30/923
+2025-10-13 17:27:56,013 - INFO - Target prices progress: 40/923
+2025-10-13 17:27:56,083 - INFO - Target prices progress: 50/923
+2025-10-13 17:27:56,203 - INFO - Processing batch 2/19 (tickers 51-100)
+2025-10-13 17:27:57,028 - INFO - Target prices progress: 60/923
+2025-10-13 17:27:57,105 - INFO - Target prices progress: 70/923
+2025-10-13 17:27:57,149 - INFO - Target prices progress: 80/923
+2025-10-13 17:27:57,180 - INFO - Target prices progress: 90/923
+2025-10-13 17:27:57,225 - INFO - Target prices progress: 100/923
+2025-10-13 17:27:57,340 - INFO - Processing batch 3/19 (tickers 101-150)
+2025-10-13 17:27:58,204 - INFO - Target prices progress: 110/923
+2025-10-13 17:27:58,237 - INFO - Target prices progress: 120/923
+2025-10-13 17:27:58,267 - INFO - Target prices progress: 130/923
+2025-10-13 17:27:58,336 - INFO - Target prices progress: 140/923
+2025-10-13 17:27:58,398 - INFO - Target prices progress: 150/923
+2025-10-13 17:27:58,536 - INFO - Processing batch 4/19 (tickers 151-200)
+2025-10-13 17:27:59,422 - INFO - Target prices progress: 160/923
+2025-10-13 17:27:59,476 - INFO - Target prices progress: 170/923
+2025-10-13 17:27:59,542 - INFO - Target prices progress: 180/923
+2025-10-13 17:27:59,596 - INFO - Target prices progress: 190/923
+2025-10-13 17:27:59,655 - INFO - Target prices progress: 200/923
+2025-10-13 17:27:59,779 - INFO - Processing batch 5/19 (tickers 201-250)
+2025-10-13 17:28:00,761 - INFO - Target prices progress: 210/923
+2025-10-13 17:28:00,848 - INFO - Target prices progress: 220/923
+2025-10-13 17:28:00,933 - INFO - Target prices progress: 230/923
+2025-10-13 17:28:00,981 - INFO - Target prices progress: 240/923
+2025-10-13 17:28:01,056 - INFO - Target prices progress: 250/923
+2025-10-13 17:28:01,202 - INFO - Processing batch 6/19 (tickers 251-300)
+2025-10-13 17:28:02,405 - INFO - Target prices progress: 260/923
+2025-10-13 17:28:02,453 - INFO - Target prices progress: 270/923
+2025-10-13 17:28:02,525 - INFO - Target prices progress: 280/923
+2025-10-13 17:28:02,584 - INFO - Target prices progress: 290/923
+2025-10-13 17:28:02,676 - INFO - Target prices progress: 300/923
+2025-10-13 17:28:02,835 - INFO - Processing batch 7/19 (tickers 301-350)
+2025-10-13 17:28:04,028 - INFO - Target prices progress: 310/923
+2025-10-13 17:28:04,075 - INFO - Target prices progress: 320/923
+2025-10-13 17:28:04,142 - INFO - Target prices progress: 330/923
+2025-10-13 17:28:04,200 - INFO - Target prices progress: 340/923
+2025-10-13 17:28:04,277 - INFO - Target prices progress: 350/923
+2025-10-13 17:28:04,420 - INFO - Processing batch 8/19 (tickers 351-400)
+2025-10-13 17:28:05,573 - INFO - Target prices progress: 360/923
+2025-10-13 17:28:05,627 - INFO - Target prices progress: 370/923
+2025-10-13 17:28:05,655 - INFO - Target prices progress: 380/923
+2025-10-13 17:28:05,725 - INFO - Target prices progress: 390/923
+2025-10-13 17:28:05,795 - INFO - Target prices progress: 400/923
+2025-10-13 17:28:05,924 - INFO - Processing batch 9/19 (tickers 401-450)
+2025-10-13 17:28:07,025 - INFO - Target prices progress: 410/923
+2025-10-13 17:28:07,114 - INFO - Target prices progress: 420/923
+2025-10-13 17:28:07,153 - INFO - Target prices progress: 430/923
+2025-10-13 17:28:07,222 - INFO - Target prices progress: 440/923
+2025-10-13 17:28:07,310 - INFO - Target prices progress: 450/923
+2025-10-13 17:28:07,440 - INFO - Processing batch 10/19 (tickers 451-500)
+2025-10-13 17:28:08,500 - INFO - Target prices progress: 460/923
+2025-10-13 17:28:08,588 - INFO - Target prices progress: 470/923
+2025-10-13 17:28:08,650 - INFO - Target prices progress: 480/923
+2025-10-13 17:28:08,690 - INFO - Target prices progress: 490/923
+2025-10-13 17:28:08,760 - INFO - Target prices progress: 500/923
+2025-10-13 17:28:08,908 - INFO - Processing batch 11/19 (tickers 501-550)
+2025-10-13 17:28:09,988 - INFO - Target prices progress: 510/923
+2025-10-13 17:28:10,038 - INFO - Target prices progress: 520/923
+2025-10-13 17:28:10,094 - INFO - Target prices progress: 530/923
+2025-10-13 17:28:10,168 - INFO - Target prices progress: 540/923
+2025-10-13 17:28:10,251 - INFO - Target prices progress: 550/923
+2025-10-13 17:28:10,384 - INFO - Processing batch 12/19 (tickers 551-600)
+2025-10-13 17:28:11,417 - INFO - Target prices progress: 560/923
+2025-10-13 17:28:11,476 - INFO - Target prices progress: 570/923
+2025-10-13 17:28:11,527 - INFO - Target prices progress: 580/923
+2025-10-13 17:28:11,594 - INFO - Target prices progress: 590/923
+2025-10-13 17:28:11,655 - INFO - Target prices progress: 600/923
+2025-10-13 17:28:11,791 - INFO - Processing batch 13/19 (tickers 601-650)
+2025-10-13 17:28:12,874 - INFO - Target prices progress: 610/923
+2025-10-13 17:28:12,947 - INFO - Target prices progress: 620/923
+2025-10-13 17:28:13,014 - INFO - Target prices progress: 630/923
+2025-10-13 17:28:13,086 - INFO - Target prices progress: 640/923
+2025-10-13 17:28:13,169 - INFO - Target prices progress: 650/923
+2025-10-13 17:28:13,292 - INFO - Processing batch 14/19 (tickers 651-700)
+2025-10-13 17:28:14,435 - INFO - Target prices progress: 660/923
+2025-10-13 17:28:14,540 - INFO - Target prices progress: 670/923
+2025-10-13 17:28:14,605 - INFO - Target prices progress: 680/923
+2025-10-13 17:28:14,678 - INFO - Target prices progress: 690/923
+2025-10-13 17:28:14,751 - INFO - Target prices progress: 700/923
+2025-10-13 17:28:14,887 - INFO - Processing batch 15/19 (tickers 701-750)
+2025-10-13 17:28:15,909 - INFO - Target prices progress: 710/923
+2025-10-13 17:28:15,981 - INFO - Target prices progress: 720/923
+2025-10-13 17:28:16,033 - INFO - Target prices progress: 730/923
+2025-10-13 17:28:16,086 - INFO - Target prices progress: 740/923
+2025-10-13 17:28:16,134 - INFO - Target prices progress: 750/923
+2025-10-13 17:28:16,272 - INFO - Processing batch 16/19 (tickers 751-800)
+2025-10-13 17:28:17,293 - INFO - Target prices progress: 760/923
+2025-10-13 17:28:17,340 - INFO - Target prices progress: 770/923
+2025-10-13 17:28:17,392 - INFO - Target prices progress: 780/923
+2025-10-13 17:28:17,436 - INFO - Target prices progress: 790/923
+2025-10-13 17:28:17,464 - INFO - Target prices progress: 800/923
+2025-10-13 17:28:17,594 - INFO - Processing batch 17/19 (tickers 801-850)
+2025-10-13 17:28:18,682 - INFO - Target prices progress: 810/923
+2025-10-13 17:28:18,718 - INFO - Target prices progress: 820/923
+2025-10-13 17:28:18,748 - INFO - Target prices progress: 830/923
+2025-10-13 17:28:18,777 - INFO - Target prices progress: 840/923
+2025-10-13 17:28:18,805 - INFO - Target prices progress: 850/923
+2025-10-13 17:28:18,933 - INFO - Processing batch 18/19 (tickers 851-900)
+2025-10-13 17:28:19,910 - INFO - Target prices progress: 860/923
+2025-10-13 17:28:19,941 - INFO - Target prices progress: 870/923
+2025-10-13 17:28:19,961 - INFO - Target prices progress: 880/923
+2025-10-13 17:28:19,975 - INFO - Target prices progress: 890/923
+2025-10-13 17:28:19,982 - INFO - Target prices progress: 900/923
+2025-10-13 17:28:20,111 - INFO - Processing batch 19/19 (tickers 901-923)
+2025-10-13 17:28:21,061 - INFO - Target prices progress: 910/923
+2025-10-13 17:28:21,074 - INFO - Target prices progress: 920/923
+2025-10-13 17:28:21,344 - INFO - Calculated target prices for 38666 observations
+2025-10-13 17:28:21,419 - INFO - Matching transcripts to quarters...
+2025-10-13 17:28:21,435 - INFO - Loading actual earnings dates from FMP...
+2025-10-13 17:28:21,571 - INFO - Loaded 660590 earnings dates for 55675 companies
+2025-10-13 17:28:21,574 - INFO - Matching transcripts to actual fiscal quarters from earnings data...
+2025-10-13 17:28:21,574 - INFO - Processing 28917 transcripts against 660590 earnings dates...
+2025-10-13 17:28:21,619 - INFO - After cleaning: 28917 transcripts, 660590 earnings dates
+2025-10-13 17:28:31,524 - INFO - Matched 7280/28917 transcripts to actual fiscal quarters
+2025-10-13 17:28:31,528 - INFO - Inferring quarters for 21637 unmatched transcripts...
+2025-10-13 17:28:31,533 - INFO - After filtering: 15767 transcripts remain
+2025-10-13 17:28:31,542 - INFO - Merged ALL 14054 transcript-quarter combinations (no deduplication)
+2025-10-13 17:28:31,546 - INFO - Adding actual information availability dates (period_start_date and period_end_date)...
+2025-10-13 17:28:31,546 - INFO - Using filing_date as transcript_available_date for 14054 rows
+2025-10-13 17:28:31,550 - INFO - Calculating period_end_date based on next quarter's financials release date...
+2025-10-13 17:28:39,128 - WARNING - Filling 14019 missing period_end_dates with period_start_date + 60 days
+2025-10-13 17:28:39,151 - INFO - Calculated holding periods for 14054 rows
+2025-10-13 17:28:39,151 - INFO -   Mean holding period: 60.2 days
+2025-10-13 17:28:39,152 - INFO -   Median holding period: 60.0 days
+2025-10-13 17:28:39,152 - INFO -   Min/Max holding period: 50 / 1190 days
+2025-10-13 17:28:39,152 - INFO - Period dates added successfully
+2025-10-13 17:28:39,154 - INFO - Removed 341 rows without target prices
+2025-10-13 17:28:39,207 - INFO - ============================================================
+2025-10-13 17:28:39,207 - INFO - MASTER TABLE SUMMARY
+2025-10-13 17:28:39,207 - INFO - ============================================================
+2025-10-13 17:28:39,207 - INFO - Final dataset shape: (13713, 76)
+2025-10-13 17:28:39,207 - INFO - Date range: 2005-09-30 00:00:00 to 2025-06-30 00:00:00
+2025-10-13 17:28:39,207 - INFO - Unique tickers: 534
+2025-10-13 17:28:39,207 - INFO - Quarters covered: 80
+2025-10-13 17:28:39,208 - INFO - Theoretical maximum: 42,720 observations
+2025-10-13 17:28:39,208 - INFO - Actual observations: 13,713
+2025-10-13 17:28:39,208 - INFO - Data completeness: 32.1%
+2025-10-13 17:28:39,209 - INFO - Columns with >10% missing data: {'revenue': 1712, 'net_income': 1712, 'eps': 1712, 'operating_income': 1712, 'gross_profit': 1712, 'ebitda': 1712, 'total_assets': 1716, 'total_debt': 1721, 'stockholders_equity': 1716, 'current_assets': 1716, 'current_liabilities': 1716, 'free_cash_flow': 1712, 'operating_cash_flow': 1712, 'capital_expenditure': 1712, 'pe_ratio': 1712, 'market_cap': 1712, 'enterprise_value': 1724, 'current_ratio': 1895, 'debt_to_equity': 1717, 'roe': 1713, 'operating_margin': 1712, 'earnings_yield': 1714, 'fcf_margin': 1712, 'revenue_yoy': 1790, 'eps_yoy': 1801, 'accruals_scaled': 1717, 'earnings_surprise_pct': 13678, 'financials_release_date': 13678}
+2025-10-13 17:28:39,209 - INFO - ============================================================
+
+[SUCCESS] Created quarters.parquet with 13,713 observations
+[DATA] 534 companies x 80 quarters
+[PERIOD] 2005-09-30 00:00:00 to 2025-06-30 00:00:00

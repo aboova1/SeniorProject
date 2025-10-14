@@ -38,7 +38,9 @@ BASE_EXCLUDE_COLS = [
     "sequence_id", "ticker", "quarter_in_sequence", "sequence_start_date",
     "sequence_end_date", "fiscal_quarter_end", "sector", "year",
     "transcript_date", "transcript_type", "days_after_quarter",
-    "target_price_next_q", "current_price", "rebalance_date", "in_sp500"
+    "target_price_next_q", "current_price", "rebalance_date", "in_sp500",
+    "period_start_date", "period_end_date", "holding_period_days", "transcript_available_date",
+    "filing_date", "financials_release_date"
 ]
 
 PRICE_CANDIDATE_NAMES = [
@@ -200,7 +202,8 @@ def load_sequences_and_prepare_dual(
         sequences.append({
             'sequence_id': seq_id,
             'ticker': q7['ticker'],
-            'rebalance_date': q7.get('rebalance_date', q7.get('fiscal_quarter_end')),
+            'period_start_date': q7.get('period_start_date', q7.get('rebalance_date', q7.get('fiscal_quarter_end'))),
+            'period_end_date': q7.get('period_end_date'),
             'X': X_price_scaled,  # For price model
             'X_no_price': X_no_price_scaled,  # For no-price model
             'y7_price': float(y7_price),
@@ -260,10 +263,14 @@ def generate_predictions_dual_model(
             no_price_model_predicts_up = no_price_model_predicted_return > 0
             both_predict_up = price_model_predicts_up and no_price_model_predicts_up
 
-            predictions.append({
+            # Use period_start_date if available (actual transcript availability date), otherwise fall back to rebalance_date
+        trading_date = row.get('period_start_date', row.get('rebalance_date'))
+
+        predictions.append({
                 'sequence_id': row['sequence_id'],
                 'ticker': row['ticker'],
-                'rebalance_date': row['rebalance_date'],
+                'period_start_date': trading_date,  # When position is entered (transcript available)
+                'period_end_date': row.get('period_end_date'),  # When position is exited (next transcript/earnings)
                 'y7_price': y7_price,
                 'y8_price_actual': row['y8_price_actual'],
                 'price_model_predicted_return': price_model_predicted_return,
@@ -306,15 +313,15 @@ def backtest_proportional_strategy(
     logger.info("="*70)
     logger.info(f"Total capital per quarter: ${total_capital_per_quarter:,.2f}")
 
-    # Sort by rebalance date
-    predictions_df['rebalance_date'] = pd.to_datetime(predictions_df['rebalance_date'])
-    predictions_df = predictions_df.sort_values('rebalance_date')
+    # Sort by period_start_date (when positions are entered based on transcript availability)
+    predictions_df['period_start_date'] = pd.to_datetime(predictions_df['period_start_date'])
+    predictions_df = predictions_df.sort_values('period_start_date')
 
     quarterly_results = []
     total_invested_all = 0.0
     total_returns_all = 0.0
 
-    for quarter_date, quarter_group in predictions_df.groupby('rebalance_date'):
+    for quarter_date, quarter_group in predictions_df.groupby('period_start_date'):
         # Filter to ONLY stocks where BOTH models predict UP
         consensus_up = quarter_group[quarter_group['both_predict_up'] == True].copy()
 
@@ -444,7 +451,7 @@ def main():
     parser.add_argument("--test", type=str, default="data_pipeline/data/sequences_8q_test.parquet",
                         help="Path to test sequences parquet")
     parser.add_argument("--price-model", type=str, default="models/best_model.pt",
-                        help="Path to price model checkpoint (train_lstm.py)")
+                        help="Path to price model checkpoint (best_model.pt for backtesting)")
     parser.add_argument("--no-price-model", type=str, default="models_no_price/best_model_no_price.pt",
                         help="Path to no-price model checkpoint (train_lstm_no_price.py)")
     parser.add_argument("--capital", type=float, default=10000.0,

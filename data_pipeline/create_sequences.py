@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
 Sequence Creator - Generates overlapping 8-quarter sequences for model training
-Takes quarters_with_transcripts.parquet and creates all possible 8-quarter sequences
+Takes quarters.parquet (with period dates) and creates all possible 8-quarter sequences
 with 1-quarter shifts (maximum overlap while maintaining uniqueness)
 
-Now also splits sequences by TICKER into train/val/test (70/15/15) and saves 3 Parquet files.
+Splits sequences by TICKER into train/val/test (70/15/15) and saves 3 Parquet files.
+Preserves period_start_date and period_end_date for realistic backtesting.
 """
 
 import pandas as pd
@@ -23,12 +24,12 @@ class SequenceCreator:
         self.sequence_length = sequence_length
 
     def load_data(self):
-        """Load the filtered quarters data"""
+        """Load the filtered quarters data with period dates"""
         logger.info("Loading filtered quarters data...")
 
-        quarters_file = self.data_dir / "quarters_with_transcripts.parquet"
+        quarters_file = self.data_dir / "quarters.parquet"
         if not quarters_file.exists():
-            raise FileNotFoundError("quarters_with_transcripts.parquet not found. Run filter_by_transcripts.py first.")
+            raise FileNotFoundError("quarters.parquet not found. Run engineer_features.py first.")
 
         self.quarters_df = pd.read_parquet(quarters_file)
         logger.info(f"Loaded {len(self.quarters_df)} observations")
@@ -57,16 +58,30 @@ class SequenceCreator:
             sequence_data = ticker_data.iloc[start_idx:end_idx].copy()
 
             # Verify this is actually 8 consecutive quarters (no gaps)
-            dates = sequence_data['fiscal_quarter_end'].values
-            quarters_diff = pd.to_datetime(dates[-1]) - pd.to_datetime(dates[0])
-            # 8 quarters span ~7 quarter periods = 7 * 90 days = 630 days
-            # Allow some flexibility for calendar differences (±60 days)
+            dates = pd.to_datetime(sequence_data['fiscal_quarter_end'].values)
+
+            # Check 1: Total span should be ~2 years (540-720 days)
+            quarters_diff = dates[-1] - dates[0]
             if not (540 <= quarters_diff.days <= 720):
                 logger.debug(f"Skipping sequence for {ticker} starting {dates[0]}: {quarters_diff.days} days span")
                 continue
 
+            # Check 2: Each consecutive pair of quarters should be ~90 days apart (80-100 days)
+            # This ensures no missing quarters in the sequence
+            has_gap = False
+            for i in range(len(dates) - 1):
+                days_between = (dates[i+1] - dates[i]).days
+                if not (80 <= days_between <= 100):
+                    logger.debug(f"Skipping sequence for {ticker}: gap of {days_between} days between {dates[i].date()} and {dates[i+1].date()}")
+                    has_gap = True
+                    break
+
+            if has_gap:
+                continue
+
             # Only check for missing data in critical columns that are absolutely required
-            critical_cols = ['ticker', 'fiscal_quarter_end', 'target_price_next_q', 'current_price', 'sector']
+            critical_cols = ['ticker', 'fiscal_quarter_end', 'target_price_next_q', 'current_price', 'sector',
+                           'period_start_date', 'period_end_date']
             critical_cols = [col for col in critical_cols if col in sequence_data.columns]
 
             if len(critical_cols) > 0 and sequence_data[critical_cols].isnull().any().any():

@@ -33,7 +33,9 @@ BASE_EXCLUDE_COLS = [
     "sequence_id", "ticker", "quarter_in_sequence", "sequence_start_date",
     "sequence_end_date", "fiscal_quarter_end", "sector", "year",
     "transcript_date", "transcript_type", "days_after_quarter",
-    "target_price_next_q", "current_price", "rebalance_date", "in_sp500"
+    "target_price_next_q", "current_price", "rebalance_date", "in_sp500",
+    "period_start_date", "period_end_date", "holding_period_days", "transcript_available_date",
+    "filing_date", "financials_release_date"
 ]
 
 # Price-like names to EXCLUDE from features. Include common aliases
@@ -229,7 +231,13 @@ class LSTMTrainer:
         return ft
 
     # ---------- data pipeline ----------
-    def load_and_prepare_data(self):
+    def load_and_prepare_data(self, combine_all: bool = False):
+        """
+        Load and prepare data for training.
+
+        Args:
+            combine_all: If True, combine train+val+test into single training set
+        """
         # Load three splits
         for pth in [self.train_path, self.val_path, self.test_path]:
             if not pth.exists():
@@ -259,29 +267,64 @@ class LSTMTrainer:
         logger.info(f"Using {len(self.feature_cols)} features")
         logger.info(f"Feature categories: {self._analyze_features()}")
 
-        # Scale ONLY first 7 rows per sequence (never touch Q8), fitting on TRAIN only
-        logger.info("Normalizing features (Q1–Q7 only; Q8 excluded)...")
+        if combine_all:
+            # Combine all data for final training
+            logger.info("="*60)
+            logger.info("COMBINING ALL DATA (train+val+test) FOR FINAL TRAINING")
+            logger.info("="*60)
+            combined_df = pd.concat([train_df, val_df, test_df], ignore_index=True)
+            logger.info(f"Combined: {len(combined_df)} rows, {combined_df['sequence_id'].nunique()} sequences, {combined_df['ticker'].nunique()} tickers")
 
-        def _nonlast_mask(df):
-            qmax = df.groupby("sequence_id")["quarter_in_sequence"].transform("max")
-            return df["quarter_in_sequence"] < qmax
+            # Scale on combined data
+            def _nonlast_mask(df):
+                qmax = df.groupby("sequence_id")["quarter_in_sequence"].transform("max")
+                return df["quarter_in_sequence"] < qmax
 
-        train_nonlast = _nonlast_mask(train_df)
-        val_nonlast   = _nonlast_mask(val_df)
-        test_nonlast  = _nonlast_mask(test_df)
+            combined_nonlast = _nonlast_mask(combined_df)
 
-        self.scaler = StandardScaler()
-        self.scaler.fit(train_df.loc[train_nonlast, self.feature_cols].values)
+            # Fill NaN values before scaling
+            combined_df.loc[combined_nonlast, self.feature_cols] = combined_df.loc[combined_nonlast, self.feature_cols].ffill().bfill().fillna(0.0)
 
-        train_df.loc[train_nonlast, self.feature_cols] = self.scaler.transform(train_df.loc[train_nonlast, self.feature_cols].values)
-        val_df.loc[val_nonlast, self.feature_cols]     = self.scaler.transform(val_df.loc[val_nonlast, self.feature_cols].values)
-        test_df.loc[test_nonlast, self.feature_cols]   = self.scaler.transform(test_df.loc[test_nonlast, self.feature_cols].values)
+            self.scaler = StandardScaler()
+            self.scaler.fit(combined_df.loc[combined_nonlast, self.feature_cols].values)
+            combined_df.loc[combined_nonlast, self.feature_cols] = self.scaler.transform(
+                combined_df.loc[combined_nonlast, self.feature_cols].values
+            )
 
-        # Build datasets
-        self.train_ds = SequenceDataset(train_df, self.feature_cols)
-        self.val_ds   = SequenceDataset(val_df,   self.feature_cols)
-        self.test_ds  = SequenceDataset(test_df,  self.feature_cols)
-        logger.info(f"Dataset sizes — Train: {len(self.train_ds)}, Val: {len(self.val_ds)}, Test: {len(self.test_ds)}")
+            # Use combined data for training, no validation set
+            self.train_ds = SequenceDataset(combined_df, self.feature_cols)
+            self.val_ds = None
+            self.test_ds = None
+            logger.info(f"Dataset size — Combined: {len(self.train_ds)}")
+        else:
+            # Scale ONLY first 7 rows per sequence (never touch Q8), fitting on TRAIN only
+            logger.info("Normalizing features (Q1–Q7 only; Q8 excluded)...")
+
+            def _nonlast_mask(df):
+                qmax = df.groupby("sequence_id")["quarter_in_sequence"].transform("max")
+                return df["quarter_in_sequence"] < qmax
+
+            train_nonlast = _nonlast_mask(train_df)
+            val_nonlast   = _nonlast_mask(val_df)
+            test_nonlast  = _nonlast_mask(test_df)
+
+            # Fill NaN values before scaling
+            train_df.loc[train_nonlast, self.feature_cols] = train_df.loc[train_nonlast, self.feature_cols].ffill().bfill().fillna(0.0)
+            val_df.loc[val_nonlast, self.feature_cols] = val_df.loc[val_nonlast, self.feature_cols].ffill().bfill().fillna(0.0)
+            test_df.loc[test_nonlast, self.feature_cols] = test_df.loc[test_nonlast, self.feature_cols].ffill().bfill().fillna(0.0)
+
+            self.scaler = StandardScaler()
+            self.scaler.fit(train_df.loc[train_nonlast, self.feature_cols].values)
+
+            train_df.loc[train_nonlast, self.feature_cols] = self.scaler.transform(train_df.loc[train_nonlast, self.feature_cols].values)
+            val_df.loc[val_nonlast, self.feature_cols]     = self.scaler.transform(val_df.loc[val_nonlast, self.feature_cols].values)
+            test_df.loc[test_nonlast, self.feature_cols]   = self.scaler.transform(test_df.loc[test_nonlast, self.feature_cols].values)
+
+            # Build datasets
+            self.train_ds = SequenceDataset(train_df, self.feature_cols)
+            self.val_ds   = SequenceDataset(val_df,   self.feature_cols)
+            self.test_ds  = SequenceDataset(test_df,  self.feature_cols)
+            logger.info(f"Dataset sizes — Train: {len(self.train_ds)}, Val: {len(self.val_ds)}, Test: {len(self.test_ds)}")
 
     # ---------- model ----------
     def create_model(self, hidden_size: int = 192, num_layers: int = 2, dropout: float = 0.25):
@@ -383,68 +426,140 @@ class LSTMTrainer:
             return HybridLoss()
         raise ValueError("Unknown loss name. Use one of: mse, huber, logcosh, mape")
 
-    def train(self, num_epochs=80, batch_size=64, lr=2e-3, weight_decay=1e-5, patience=12):
-        logger.info("="*60); logger.info("STARTING TRAINING (log-space, residual to Q7)"); logger.info("="*60)
+    def train(self, num_epochs=80, batch_size=64, lr=2e-3, weight_decay=1e-5, patience=12, fixed_epochs=None):
+        """
+        Train the model.
 
-        train_ld = DataLoader(self.train_ds, batch_size=batch_size, shuffle=True, pin_memory=True)
-        val_ld   = DataLoader(self.val_ds,   batch_size=batch_size, shuffle=False, pin_memory=True)
+        Args:
+            num_epochs: Maximum number of epochs
+            batch_size: Batch size
+            lr: Learning rate
+            weight_decay: Weight decay
+            patience: Early stopping patience (ignored if fixed_epochs is set)
+            fixed_epochs: If set, train for exactly this many epochs without early stopping or validation
+        """
+        if fixed_epochs is not None:
+            # Training mode: fixed epochs, no validation
+            logger.info("="*60)
+            logger.info(f"TRAINING FOR FIXED {fixed_epochs} EPOCHS (no validation)")
+            logger.info("="*60)
 
-        criterion = self._make_criterion(self.loss_name)
-        optimzr = optim.AdamW(self.model.parameters(), lr=lr, weight_decay=weight_decay)
-        sched = torch.optim.lr_scheduler.CosineAnnealingLR(optimzr, T_max=num_epochs)
+            train_ld = DataLoader(self.train_ds, batch_size=batch_size, shuffle=True, pin_memory=True)
+            criterion = self._make_criterion(self.loss_name)
+            optimzr = optim.AdamW(self.model.parameters(), lr=lr, weight_decay=weight_decay)
+            sched = torch.optim.lr_scheduler.CosineAnnealingLR(optimzr, T_max=fixed_epochs)
 
-        best = float("inf"); bad = 0
-        history = []
+            history = []
 
-        for ep in range(num_epochs):
-            tr_loss, tr_pred_raw, tr_targ_raw = self._epoch(train_ld, optimizer=optimzr, criterion=criterion)
-            vl_loss, vl_pred_raw, vl_targ_raw = self._epoch(val_ld, optimizer=None,   criterion=criterion)
+            for ep in range(fixed_epochs):
+                tr_loss, tr_pred_raw, tr_targ_raw = self._epoch(train_ld, optimizer=optimzr, criterion=criterion)
+                tr_m = self._metrics(tr_pred_raw, tr_targ_raw)
+                sched.step()
 
-            tr_m = self._metrics(tr_pred_raw, tr_targ_raw)
-            vl_m = self._metrics(vl_pred_raw, vl_targ_raw)
-            sched.step(vl_m['mape'])
+                logger.info(f"Epoch {ep+1}/{fixed_epochs}")
+                logger.info(f"  Train Loss: {tr_loss:.6f}")
+                logger.info(f"  Train MAPE: {tr_m['mape']:.4f}")
+                logger.info(f"  Train RMSE (raw): {tr_m['rmse']:.4f}")
+                logger.info(f"  Train IC: {tr_m['ic']:.4f}")
 
-            logger.info(f"Epoch {ep+1}/{num_epochs}")
-            logger.info(f"  Train Loss: {tr_loss:.6f} | Val Loss: {vl_loss:.6f}")
-            logger.info(f"  Train MAPE: {tr_m['mape']:.4f} | Val MAPE: {vl_m['mape']:.4f}")
-            logger.info(f"  Train RMSE (raw): {tr_m['rmse']:.4f} | Val RMSE (raw): {vl_m['rmse']:.4f}")
-            logger.info(f"  Train IC: {tr_m['ic']:.4f} | Val IC: {vl_m['ic']:.4f}")
-
-            history.append({
-                "epoch": ep + 1,
-                "train_loss": tr_loss,
-                "val_loss": vl_loss,
-                "train_metrics_raw": tr_m,
-                "val_metrics_raw": vl_m,
-            })
-
-            # early stopping on val MAPE (percentage error)
-            if vl_m['mape'] < best:
-                best = vl_m['mape']; bad = 0
-                torch.save({
-                    "model_state_dict": self.model.state_dict(),
-                    "optimizer_state_dict": optimzr.state_dict(),
+                history.append({
                     "epoch": ep + 1,
-                    "val_mape": float(vl_m['mape']),
-                    "val_loss": float(vl_loss),
-                    "feature_cols": self.feature_cols,
-                    "scaler_mean": self.scaler.mean_,
-                    "scaler_scale": self.scaler.scale_,
-                    "use_attn": self.use_attn,
-                    "loss_name": self.loss_name,
-                }, self.model_dir / "best_model.pt")
-                logger.info(f"  Saved best model (val MAPE: {vl_m['mape']:.4f})")
-            else:
-                bad += 1
-                if bad >= patience:
-                    logger.info(f"Early stopping triggered after {ep+1} epochs")
-                    break
+                    "train_loss": tr_loss,
+                    "train_metrics_raw": tr_m,
+                })
 
-        with open(self.results_dir / "training_history.json", "w") as f:
-            json.dump(history, f, indent=2, default=str)
+            # Save final model
+            torch.save({
+                "model_state_dict": self.model.state_dict(),
+                "optimizer_state_dict": optimzr.state_dict(),
+                "epoch": fixed_epochs,
+                "feature_cols": self.feature_cols,
+                "scaler_mean": self.scaler.mean_,
+                "scaler_scale": self.scaler.scale_,
+                "use_attn": self.use_attn,
+                "loss_name": self.loss_name,
+            }, self.model_dir / "final_model_all_data.pt")
+            logger.info(f"  Saved final model to final_model_all_data.pt")
 
-        logger.info("="*60); logger.info("TRAINING COMPLETE"); logger.info("="*60)
-        return history
+            with open(self.results_dir / "final_training_history.json", "w") as f:
+                json.dump(history, f, indent=2, default=str)
+
+            logger.info("="*60); logger.info("FIXED-EPOCH TRAINING COMPLETE"); logger.info("="*60)
+            return history
+
+        else:
+            # Original training mode with validation and early stopping
+            logger.info("="*60); logger.info("STARTING TRAINING (log-space, residual to Q7)"); logger.info("="*60)
+
+            if self.val_ds is None:
+                raise ValueError("Validation set required for training with early stopping. Use fixed_epochs parameter for training without validation.")
+
+            train_ld = DataLoader(self.train_ds, batch_size=batch_size, shuffle=True, pin_memory=True)
+            val_ld   = DataLoader(self.val_ds,   batch_size=batch_size, shuffle=False, pin_memory=True)
+
+            criterion = self._make_criterion(self.loss_name)
+            optimzr = optim.AdamW(self.model.parameters(), lr=lr, weight_decay=weight_decay)
+            sched = torch.optim.lr_scheduler.CosineAnnealingLR(optimzr, T_max=num_epochs)
+
+            best = float("inf"); bad = 0
+            best_epoch = 0
+            history = []
+
+            for ep in range(num_epochs):
+                tr_loss, tr_pred_raw, tr_targ_raw = self._epoch(train_ld, optimizer=optimzr, criterion=criterion)
+                vl_loss, vl_pred_raw, vl_targ_raw = self._epoch(val_ld, optimizer=None,   criterion=criterion)
+
+                tr_m = self._metrics(tr_pred_raw, tr_targ_raw)
+                vl_m = self._metrics(vl_pred_raw, vl_targ_raw)
+                sched.step(vl_m['mape'])
+
+                logger.info(f"Epoch {ep+1}/{num_epochs}")
+                logger.info(f"  Train Loss: {tr_loss:.6f} | Val Loss: {vl_loss:.6f}")
+                logger.info(f"  Train MAPE: {tr_m['mape']:.4f} | Val MAPE: {vl_m['mape']:.4f}")
+                logger.info(f"  Train RMSE (raw): {tr_m['rmse']:.4f} | Val RMSE (raw): {vl_m['rmse']:.4f}")
+                logger.info(f"  Train IC: {tr_m['ic']:.4f} | Val IC: {vl_m['ic']:.4f}")
+
+                history.append({
+                    "epoch": ep + 1,
+                    "train_loss": tr_loss,
+                    "val_loss": vl_loss,
+                    "train_metrics_raw": tr_m,
+                    "val_metrics_raw": vl_m,
+                })
+
+                # early stopping on val MAPE (percentage error)
+                if vl_m['mape'] < best:
+                    best = vl_m['mape']; bad = 0
+                    best_epoch = ep + 1
+                    torch.save({
+                        "model_state_dict": self.model.state_dict(),
+                        "optimizer_state_dict": optimzr.state_dict(),
+                        "epoch": ep + 1,
+                        "val_mape": float(vl_m['mape']),
+                        "val_loss": float(vl_loss),
+                        "feature_cols": self.feature_cols,
+                        "scaler_mean": self.scaler.mean_,
+                        "scaler_scale": self.scaler.scale_,
+                        "use_attn": self.use_attn,
+                        "loss_name": self.loss_name,
+                    }, self.model_dir / "best_model.pt")
+                    logger.info(f"  Saved best model (val MAPE: {vl_m['mape']:.4f})")
+                else:
+                    bad += 1
+                    if bad >= patience:
+                        logger.info(f"Early stopping triggered after {ep+1} epochs")
+                        break
+
+            with open(self.results_dir / "training_history.json", "w") as f:
+                json.dump(history, f, indent=2, default=str)
+
+            # Save optimal epoch info
+            with open(self.results_dir / "optimal_epochs.txt", "w") as f:
+                f.write(f"{best_epoch}\n")
+            logger.info(f"Optimal epoch count saved: {best_epoch}")
+
+            logger.info("="*60); logger.info("TRAINING COMPLETE"); logger.info("="*60)
+            return history
 
     def evaluate_test_set(self):
         logger.info("Evaluating on test set...")
@@ -618,7 +733,7 @@ def parse_args():
     p.add_argument("--test", type=str, default="data_pipeline/data/sequences_8q_test.parquet",
                    help="Path to TEST sequences parquet.")
 
-    # Back-compat: if you pass --data, we’ll still try to use a single file (for quick experiments)
+    # Back-compat: if you pass --data, we'll still try to use a single file (for quick experiments)
     p.add_argument("--data", type=str, default=None,
                    help="[Optional/legacy] Single parquet with all sequences. If provided, will be used for all three splits (temporal split is NO LONGER performed here).")
 
@@ -633,6 +748,13 @@ def parse_args():
 
     p.add_argument("--no-attn", dest="attn", action="store_false", help="Disable attention pooling (defaults to ON).")
     p.add_argument("--loss", type=str, default="huber", choices=["mse", "huber", "logcosh", "mape", "hybrid"], help="Training loss (huber is recommended for balanced predictions).")
+
+    # Retraining on all data
+    p.add_argument("--retrain-all", action="store_true",
+                   help="Retrain on ALL data (train+val+test) using optimal epochs from validation.")
+    p.add_argument("--retrain-epochs", type=int, default=None,
+                   help="Number of epochs to use for retraining on all data. If not specified, will first find optimal epochs via validation, then retrain.")
+
     return p.parse_args()
 
 def main():
@@ -647,23 +769,92 @@ def main():
         val_path   = Path(args.val)
         test_path  = Path(args.test)
 
-    trainer = LSTMTrainer(
-        str(train_path),
-        str(val_path),
-        str(test_path),
-        use_attn=args.attn,
-        loss_name=args.loss
-    )
-    trainer.load_and_prepare_data()
-    trainer.create_model(hidden_size=args.hidden, num_layers=args.layers, dropout=args.dropout)
-    trainer.train(num_epochs=args.epochs, batch_size=args.bs, lr=args.lr, weight_decay=args.wd, patience=args.patience)
-    test_metrics = trainer.evaluate_test_set()
+    if args.retrain_all:
+        # Retraining mode: train on ALL data (train+val+test)
+        logger.info("="*80)
+        logger.info("RETRAINING MODE: Training on ALL data (train+val+test)")
+        logger.info("="*80)
 
-    print("[SUCCESS] Training complete!")
-    print(f"[TEST RMSE] {test_metrics['rmse']:.4f}")
-    print(f"[TEST MAPE] {test_metrics['mape']:.4f}")
-    print(f"[TEST IC]   {test_metrics['ic']:.4f}")
-    print(f"[MODEL] Saved to {Path('models') / 'best_model.pt'}")
+        # Determine number of epochs to use
+        if args.retrain_epochs is not None:
+            # User specified epochs directly
+            optimal_epochs = args.retrain_epochs
+            logger.info(f"Using user-specified {optimal_epochs} epochs for retraining")
+        else:
+            # First, find optimal epochs via validation
+            logger.info("STEP 1: Finding optimal epochs via validation...")
+            logger.info("="*80)
+
+            trainer = LSTMTrainer(
+                str(train_path),
+                str(val_path),
+                str(test_path),
+                use_attn=args.attn,
+                loss_name=args.loss
+            )
+            trainer.load_and_prepare_data(combine_all=False)
+            trainer.create_model(hidden_size=args.hidden, num_layers=args.layers, dropout=args.dropout)
+            trainer.train(num_epochs=args.epochs, batch_size=args.bs, lr=args.lr,
+                         weight_decay=args.wd, patience=args.patience)
+
+            # Read optimal epoch count
+            optimal_epochs_file = Path("results") / "optimal_epochs.txt"
+            if not optimal_epochs_file.exists():
+                raise FileNotFoundError("Could not find optimal_epochs.txt. Training may have failed.")
+
+            with open(optimal_epochs_file, 'r') as f:
+                optimal_epochs = int(f.read().strip())
+
+            logger.info("="*80)
+            logger.info(f"STEP 1 COMPLETE: Optimal epochs = {optimal_epochs}")
+            logger.info("="*80)
+            logger.info("")
+
+        # Now retrain on ALL data
+        logger.info("="*80)
+        logger.info(f"STEP 2: Retraining on ALL data for {optimal_epochs} epochs...")
+        logger.info("="*80)
+
+        # Create new trainer for combined data
+        trainer_final = LSTMTrainer(
+            str(train_path),
+            str(val_path),
+            str(test_path),
+            use_attn=args.attn,
+            loss_name=args.loss
+        )
+        trainer_final.load_and_prepare_data(combine_all=True)
+        trainer_final.create_model(hidden_size=args.hidden, num_layers=args.layers, dropout=args.dropout)
+        trainer_final.train(num_epochs=args.epochs, batch_size=args.bs, lr=args.lr,
+                          weight_decay=args.wd, patience=args.patience, fixed_epochs=optimal_epochs)
+
+        logger.info("="*80)
+        logger.info("RETRAINING COMPLETE!")
+        logger.info("="*80)
+        print("[SUCCESS] Retraining on all data complete!")
+        print(f"[OPTIMAL EPOCHS] {optimal_epochs}")
+        print(f"[FINAL MODEL] Saved to {Path('models') / 'final_model_all_data.pt'}")
+
+    else:
+        # Normal mode: train with validation and test
+        trainer = LSTMTrainer(
+            str(train_path),
+            str(val_path),
+            str(test_path),
+            use_attn=args.attn,
+            loss_name=args.loss
+        )
+        trainer.load_and_prepare_data(combine_all=False)
+        trainer.create_model(hidden_size=args.hidden, num_layers=args.layers, dropout=args.dropout)
+        trainer.train(num_epochs=args.epochs, batch_size=args.bs, lr=args.lr,
+                     weight_decay=args.wd, patience=args.patience)
+        test_metrics = trainer.evaluate_test_set()
+
+        print("[SUCCESS] Training complete!")
+        print(f"[TEST RMSE] {test_metrics['rmse']:.4f}")
+        print(f"[TEST MAPE] {test_metrics['mape']:.4f}")
+        print(f"[TEST IC]   {test_metrics['ic']:.4f}")
+        print(f"[MODEL] Saved to {Path('models') / 'best_model.pt'}")
 
 if __name__ == "__main__":
     main()

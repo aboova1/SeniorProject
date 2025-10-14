@@ -27,6 +27,17 @@ class PipelineRunner:
                 'description': 'Downloading S&P 500 membership, prices, fundamentals, and earnings data'
             },
             {
+                'name': 'Earnings Dates Collection',
+                'script': 'collect_earnings_dates.py',
+                'description': 'Collecting actual earnings announcement dates from FMP (optional, enhances accuracy)',
+                'optional': True
+            },
+            {
+                'name': 'Transcript Timing Analysis',
+                'script': 'calculate_transcript_timing.py',
+                'description': 'Calculating company-specific transcript release delays for optimal rebalance dates'
+            },
+            {
                 'name': 'Feature Engineering',
                 'script': 'engineer_features.py',
                 'description': 'Computing technical indicators, fundamental ratios, and PCA-reduced embeddings'
@@ -112,7 +123,13 @@ class PipelineRunner:
             if not script_path.exists():
                 logger.error(f"  Script not found: {script_path}")
                 self.results.append({'step': step['name'], 'status': 'FAILED - Script not found'})
-                break
+
+                # If it's an optional step, continue
+                if step.get('optional', False):
+                    logger.warning(f"  Step is optional, continuing pipeline...")
+                    continue
+                else:
+                    break
 
             step_start = datetime.now()
             success = self.run_script(script_path, step['name'])
@@ -124,8 +141,14 @@ class PipelineRunner:
             else:
                 logger.error(f"  Failed after {step_duration:.1f}s")
                 self.results.append({'step': step['name'], 'status': 'FAILED', 'duration': step_duration})
-                logger.error("\n❌ Pipeline stopped due to error")
-                break
+
+                # If it's an optional step, continue
+                if step.get('optional', False):
+                    logger.warning(f"  Step is optional, continuing pipeline...")
+                    continue
+                else:
+                    logger.error("\n❌ Pipeline stopped due to error")
+                    break
 
         self.print_summary()
 

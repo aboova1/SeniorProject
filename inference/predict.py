@@ -180,7 +180,7 @@ def main():
         epilog="Note: This script uses pre-processed data. To make predictions on the very latest market data, please re-run the full data pipeline first by executing 'python data_pipeline/run_pipeline.py'."
     )
     parser.add_argument("--ticker", type=str, required=True, help="Ticker symbol to predict for (e.g., 'AAPL').")
-    parser.add_argument("--model-path", type=str, default="models/best_model.pt", help="Path to the trained model checkpoint.")
+    parser.add_argument("--model-path", type=str, default="models/final_model_all_data.pt", help="Path to the trained model checkpoint (default: final model trained on all data).")
     parser.add_argument("--data-path", type=str, default="data_pipeline/data/sequences_8q.parquet", help="Path to the sequences data file.")
     
     args = parser.parse_args()

@@ -157,10 +157,10 @@ def _process_ticker_target_prices(args: tuple) -> list:
 class UpdatedFeatureProcessor:
     def __init__(self, data_dir: str = "data_pipeline/data", max_workers: int = None):
         self.data_dir = Path(data_dir)
-        self.data_dir.mkdir(exist_ok=True)
-        # Use 12 workers for parallel processing
+        self.data_dir.mkdir(exist_ok=True, parents=True)
+        # Use 8 workers for parallel processing to avoid memory exhaustion
         import multiprocessing
-        self.max_workers = max_workers or 20
+        self.max_workers = max_workers or 8
 
     def load_data(self):
         """Load all downloaded data files from precise collector"""
@@ -494,14 +494,22 @@ class UpdatedFeatureProcessor:
             how='left'
         )
 
-        # Merge earnings data
+        # Merge earnings data - KEEP earnings_date for period calculation
         if len(self.earnings_df) > 0:
             earnings_features = self.earnings_df.copy()
             earnings_features['fiscal_quarter_end'] = pd.to_datetime(earnings_features['date'])
 
-            # Get quarterly earnings surprise
+            # IMPORTANT: Keep the earnings date (when financials are actually released)
+            if 'earnings_date' in earnings_features.columns:
+                earnings_features['financials_release_date'] = pd.to_datetime(earnings_features['earnings_date'])
+            else:
+                # Fallback: use 'date' column if no earnings_date
+                earnings_features['financials_release_date'] = earnings_features['fiscal_quarter_end']
+
+            # Get quarterly earnings surprise AND financials release date
             earnings_quarterly = earnings_features.groupby(['ticker', 'fiscal_quarter_end']).agg({
-                'earnings_surprise_pct': 'last'
+                'earnings_surprise_pct': 'last',
+                'financials_release_date': 'first'  # Get first (earliest) financials date for this quarter
             }).reset_index()
 
             master_df = master_df.merge(earnings_quarterly, on=['ticker', 'fiscal_quarter_end'], how='left')
@@ -515,41 +523,218 @@ class UpdatedFeatureProcessor:
             # Ensure filing_date is datetime
             text_features['filing_date'] = pd.to_datetime(text_features['filing_date'])
 
-            # Map filing date to the quarter it refers to
-            # Earnings calls typically happen 30-45 days after quarter end
-            # Subtract 45 days from filing date and round to nearest quarter end
-            text_features['inferred_quarter'] = text_features['filing_date'] - pd.Timedelta(days=45)
-            text_features['inferred_quarter'] = text_features['inferred_quarter'].dt.to_period('Q').dt.to_timestamp(how='end')
-            # Normalize to start of day (00:00:00) to match membership data
-            text_features['inferred_quarter'] = text_features['inferred_quarter'].dt.normalize()
+            # Try to load actual earnings dates from FMP
+            earnings_dates_path = self.data_dir / "earnings_dates.parquet"
+            use_actual_earnings = False
+
+            if earnings_dates_path.exists():
+                logger.info("Loading actual earnings dates from FMP...")
+                try:
+                    earnings_df = pd.read_parquet(earnings_dates_path)
+                    earnings_df['earnings_date'] = pd.to_datetime(earnings_df['earnings_date'])
+                    earnings_df['fiscal_quarter_end'] = pd.to_datetime(earnings_df['fiscal_quarter_end'])
+
+                    logger.info(f"Loaded {len(earnings_df)} earnings dates for {earnings_df['ticker'].nunique()} companies")
+                    use_actual_earnings = True
+                except Exception as e:
+                    logger.warning(f"Failed to load earnings dates: {e}. Falling back to inferred quarters.")
+                    use_actual_earnings = False
 
             # Prepare text features for merge
             text_for_merge = text_features.copy()
-            text_for_merge['fiscal_quarter_end'] = text_for_merge['inferred_quarter']
 
-            # Keep only the closest transcript per ticker-quarter
-            # Filter to transcripts that occur 0-90 days after the quarter end
+            if use_actual_earnings:
+                # Match transcripts to actual fiscal quarters using earnings dates
+                logger.info("Matching transcripts to actual fiscal quarters from earnings data...")
+                logger.info(f"Processing {len(text_for_merge)} transcripts against {len(earnings_df)} earnings dates...")
+
+                # Simpler approach: Cross-merge within each ticker, then filter
+                text_for_merge = text_for_merge.dropna(subset=['filing_date', 'ticker'])
+                earnings_clean = earnings_df.dropna(subset=['earnings_date', 'fiscal_quarter_end', 'ticker']).copy()
+
+                logger.info(f"After cleaning: {len(text_for_merge)} transcripts, {len(earnings_clean)} earnings dates")
+
+                # For each transcript, find closest earnings date
+                matched_quarters = []
+
+                for ticker in text_for_merge['ticker'].unique():
+                    ticker_transcripts = text_for_merge[text_for_merge['ticker'] == ticker]
+                    ticker_earnings = earnings_clean[earnings_clean['ticker'] == ticker]
+
+                    if len(ticker_earnings) == 0:
+                        continue
+
+                    # Cross merge and calculate differences
+                    merged = ticker_transcripts.merge(ticker_earnings, on='ticker', how='left')
+
+                    # Transcript ALWAYS comes AFTER earnings date
+                    # Look backwards: find earnings_date that's 0-90 days BEFORE filing_date
+                    merged['days_after'] = (merged['filing_date'] - merged['earnings_date']).dt.days
+
+                    # Filter to: earnings_date is 0-90 days BEFORE filing_date
+                    close_matches = merged[(merged['days_after'] >= 0) & (merged['days_after'] <= 90)]
+
+                    if len(close_matches) > 0:
+                        # Keep closest match for each transcript (smallest days_after)
+                        best_matches = close_matches.loc[close_matches.groupby('filing_date')['days_after'].idxmin()]
+
+                        for _, match in best_matches.iterrows():
+                            matched_quarters.append({
+                                'ticker': ticker,
+                                'filing_date': match['filing_date'],
+                                'fiscal_quarter_end': match['fiscal_quarter_end'],
+                                'earnings_date': match['earnings_date'],
+                                'days_after': match['days_after']
+                            })
+
+                if matched_quarters:
+                    matched_df = pd.DataFrame(matched_quarters)
+                    logger.info(f"Matched {len(matched_df)}/{len(text_for_merge)} transcripts to actual fiscal quarters")
+
+                    # Merge back to text features
+                    text_for_merge = text_for_merge.merge(
+                        matched_df[['ticker', 'filing_date', 'fiscal_quarter_end']],
+                        on=['ticker', 'filing_date'],
+                        how='left',
+                        suffixes=('', '_matched')
+                    )
+
+                    if 'fiscal_quarter_end_matched' in text_for_merge.columns:
+                        text_for_merge['fiscal_quarter_end'] = text_for_merge['fiscal_quarter_end_matched']
+                        text_for_merge = text_for_merge.drop(columns=['fiscal_quarter_end_matched'])
+
+                    # For unmatched, use inference
+                    unmatched = text_for_merge['fiscal_quarter_end'].isna()
+                    if unmatched.sum() > 0:
+                        logger.info(f"Inferring quarters for {unmatched.sum()} unmatched transcripts...")
+                        text_for_merge.loc[unmatched, 'fiscal_quarter_end'] = (
+                            (text_for_merge.loc[unmatched, 'filing_date'] - pd.Timedelta(days=28))
+                            .dt.to_period('Q').dt.to_timestamp(how='end')
+                        )
+                else:
+                    logger.warning("No transcripts matched. Falling back to inference.")
+                    use_actual_earnings = False
+
+            if not use_actual_earnings:
+                # Fallback: Map filing date to the quarter it refers to
+                # Earnings calls typically happen 28 days after quarter end (based on analysis)
+                logger.info("Using inferred quarters (subtract 28 days from filing date, round to quarter)...")
+                text_for_merge['fiscal_quarter_end'] = text_for_merge['filing_date'] - pd.Timedelta(days=28)
+                text_for_merge['fiscal_quarter_end'] = text_for_merge['fiscal_quarter_end'].dt.to_period('Q').dt.to_timestamp(how='end')
+
+            # Normalize dates to match membership data
+            text_for_merge['fiscal_quarter_end'] = text_for_merge['fiscal_quarter_end'].dt.normalize()
+
+            # Calculate days after quarter for filtering
             text_for_merge['days_after_quarter'] = (text_for_merge['filing_date'] - text_for_merge['fiscal_quarter_end']).dt.days
+
+            # Filter to reasonable range (transcripts should be 0-90 days after quarter end)
             text_for_merge = text_for_merge[
-                (text_for_merge['days_after_quarter'] >= 0) &
+                (text_for_merge['days_after_quarter'] >= -7) &  # Allow slight backdate for timing differences
                 (text_for_merge['days_after_quarter'] <= 90)
             ]
-            text_for_merge = text_for_merge.sort_values(['ticker', 'fiscal_quarter_end', 'days_after_quarter'])
-            text_for_merge = text_for_merge.groupby(['ticker', 'fiscal_quarter_end']).first().reset_index()
 
-            text_cols = ['ticker', 'fiscal_quarter_end'] + [f'txt_{i+1:02d}' for i in range(32)]
+            logger.info(f"After filtering: {len(text_for_merge)} transcripts remain")
+
+            # CRITICAL: DO NOT DEDUPLICATE - Keep ALL transcripts even if multiple per quarter
+            # This means some quarters will have multiple rows (one per transcript)
+            # This is VITAL for the model to learn from all transcript data
+
+            # Prepare columns for merge - keep filing_date for period date calculation
+            text_cols = ['ticker', 'fiscal_quarter_end', 'filing_date', 'days_after_quarter'] + [f'txt_{i+1:02d}' for i in range(32)]
             available_text_cols = [col for col in text_cols if col in text_for_merge.columns]
 
-            if len(available_text_cols) > 2:
-                master_df = master_df.merge(text_for_merge[available_text_cols], on=['ticker', 'fiscal_quarter_end'], how='left')
-                matched_count = master_df[[f'txt_{i+1:02d}' for i in range(32) if f'txt_{i+1:02d}' in master_df.columns]].notna().any(axis=1).sum()
-                logger.info(f"Matched {matched_count} quarters with transcript embeddings")
+            if len(available_text_cols) > 4:  # ticker, fiscal_quarter_end, filing_date, days_after_quarter + text features
+                # Merge ALL transcripts with master data
+                # This will duplicate quarter fundamentals for quarters with multiple transcripts
+                # Each row represents a unique transcript
+                master_df = master_df.merge(text_for_merge[available_text_cols], on=['ticker', 'fiscal_quarter_end'], how='inner')
+                logger.info(f"Merged ALL {len(master_df)} transcript-quarter combinations (no deduplication)")
 
         # Merge target prices
         master_df = master_df.merge(target_prices, on=['ticker', 'fiscal_quarter_end'], how='left')
 
-        # Add rebalance date
-        master_df['rebalance_date'] = pd.to_datetime(master_df['fiscal_quarter_end']) + pd.Timedelta(days=45)
+        # ===== NEW: Add actual information availability dates =====
+        logger.info("Adding actual information availability dates (period_start_date and period_end_date)...")
+
+        # Filing date is already in master_df from the merge above (if transcripts exist)
+        if 'filing_date' in master_df.columns:
+            # Use the actual filing_date from each transcript
+            master_df['transcript_available_date'] = master_df['filing_date']
+            logger.info(f"Using filing_date as transcript_available_date for {master_df['transcript_available_date'].notna().sum()} rows")
+        else:
+            logger.warning("No filing_date column found, cannot set actual transcript dates")
+            master_df['transcript_available_date'] = pd.NaT
+
+        # Calculate period dates for each row
+        # Sort by ticker, fiscal_quarter_end, and filing_date
+        master_df = master_df.sort_values(['ticker', 'fiscal_quarter_end', 'filing_date']).reset_index(drop=True)
+
+        # For each transcript, period_start_date = its filing_date
+        master_df['period_start_date'] = master_df['transcript_available_date']
+
+        # ACCURATE HOLDING PERIOD CALCULATION
+        # period_end_date = NEXT quarter's FINANCIALS RELEASE DATE (not transcript, not quarter end)
+        # We hold from Q's transcript date until Q+1's financials are released
+        logger.info("Calculating period_end_date based on next quarter's financials release date...")
+        master_df['period_end_date'] = pd.NaT
+
+        for ticker in master_df['ticker'].unique():
+            ticker_mask = master_df['ticker'] == ticker
+            ticker_df = master_df[ticker_mask].copy()
+
+            # Get unique quarters for this ticker, sorted
+            unique_quarters = sorted(ticker_df['fiscal_quarter_end'].unique())
+
+            # For each quarter, set period_end_date to the NEXT quarter's financials release date
+            for i, current_quarter in enumerate(unique_quarters):
+                current_quarter_mask = (master_df['ticker'] == ticker) & (master_df['fiscal_quarter_end'] == current_quarter)
+
+                # Find next quarter's financials release date
+                if i + 1 < len(unique_quarters):
+                    next_quarter = unique_quarters[i + 1]
+                    next_quarter_data = ticker_df[ticker_df['fiscal_quarter_end'] == next_quarter]
+
+                    if len(next_quarter_data) > 0:
+                        # Use the financials_release_date for next quarter (when Q+1's financials come out)
+                        next_financials_date = next_quarter_data['financials_release_date'].iloc[0]
+
+                        if pd.notna(next_financials_date):
+                            master_df.loc[current_quarter_mask, 'period_end_date'] = next_financials_date
+
+        # Fill missing period_start_date with estimated date (fiscal_quarter_end + 45 days)
+        missing_start = master_df['period_start_date'].isna()
+        if missing_start.sum() > 0:
+            logger.warning(f"Filling {missing_start.sum()} missing period_start_dates with fiscal_quarter_end + 45 days")
+            master_df.loc[missing_start, 'period_start_date'] = (
+                pd.to_datetime(master_df.loc[missing_start, 'fiscal_quarter_end']) + pd.Timedelta(days=45)
+            )
+
+        # Fill missing period_end_date (same 60-day period for fallback)
+        missing_end = master_df['period_end_date'].isna()
+        if missing_end.sum() > 0:
+            logger.warning(f"Filling {missing_end.sum()} missing period_end_dates with period_start_date + 60 days")
+            master_df.loc[missing_end, 'period_end_date'] = (
+                pd.to_datetime(master_df.loc[missing_end, 'period_start_date']) + pd.Timedelta(days=60)
+            )
+
+        # Calculate holding period in days
+        master_df['holding_period_days'] = (
+            pd.to_datetime(master_df['period_end_date']) - pd.to_datetime(master_df['period_start_date'])
+        ).dt.days
+
+        # Log holding period statistics
+        valid_periods = master_df['holding_period_days'].notna()
+        if valid_periods.sum() > 0:
+            logger.info(f"Calculated holding periods for {valid_periods.sum()} rows")
+            logger.info(f"  Mean holding period: {master_df.loc[valid_periods, 'holding_period_days'].mean():.1f} days")
+            logger.info(f"  Median holding period: {master_df.loc[valid_periods, 'holding_period_days'].median():.1f} days")
+            logger.info(f"  Min/Max holding period: {master_df.loc[valid_periods, 'holding_period_days'].min():.0f} / {master_df.loc[valid_periods, 'holding_period_days'].max():.0f} days")
+
+        # Keep rebalance_date as alias to period_start_date for backwards compatibility
+        master_df['rebalance_date'] = master_df['period_start_date']
+
+        logger.info("Period dates added successfully")
 
         # Remove rows without target values
         initial_rows = len(master_df)

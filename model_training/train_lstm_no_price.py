@@ -33,7 +33,8 @@ BASE_EXCLUDE_COLS = [
     "sequence_id", "ticker", "quarter_in_sequence", "sequence_start_date",
     "sequence_end_date", "fiscal_quarter_end", "sector", "year",
     "transcript_date", "transcript_type", "days_after_quarter",
-    "target_price_next_q", "current_price", "rebalance_date", "in_sp500"
+    "target_price_next_q", "current_price", "rebalance_date", "in_sp500",
+    "period_start_date", "period_end_date", "holding_period_days", "transcript_available_date"
 ]
 
 # PRICE-DERIVED features to EXCLUDE (never use in Q1-Q7 input)

@@ -1,0 +1,36 @@
+2025-10-13 17:34:45,971 - INFO - Using device: cuda
+2025-10-13 17:34:45,971 - INFO - Loading train: data_pipeline\data\sequences_8q_train.parquet
+2025-10-13 17:34:46,001 - INFO - Loading val:   data_pipeline\data\sequences_8q_val.parquet
+2025-10-13 17:34:46,005 - INFO - Loading test:  data_pipeline\data\sequences_8q_test.parquet
+2025-10-13 17:34:46,011 - INFO - Train: 19120 rows, 2390 sequences, 101 tickers
+2025-10-13 17:34:46,011 - INFO - Val: 3728 rows, 466 sequences, 22 tickers
+2025-10-13 17:34:46,011 - INFO - Test: 4776 rows, 597 sequences, 21 tickers
+2025-10-13 17:34:46,011 - INFO - Using 64 features
+2025-10-13 17:34:46,011 - INFO - Feature categories: {'technical': 3, 'fundamental': 9, 'text': 32, 'other': 20}
+2025-10-13 17:34:46,011 - INFO - Normalizing features (Q1–Q7 only; Q8 excluded)...
+Traceback (most recent call last):
+  File "C:\Users\fires\OneDrive\Desktop\SeniorProject\model_training\train_lstm.py", line 859, in <module>
+    main()
+  File "C:\Users\fires\OneDrive\Desktop\SeniorProject\model_training\train_lstm.py", line 846, in main
+    trainer.load_and_prepare_data(combine_all=False)
+  File "C:\Users\fires\OneDrive\Desktop\SeniorProject\model_training\train_lstm.py", line 316, in load_and_prepare_data
+    self.scaler.fit(train_df.loc[train_nonlast, self.feature_cols].values)
+  File "C:\Users\fires\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\sklearn\preprocessing\_data.py", line 894, in fit
+    return self.partial_fit(X, y, sample_weight)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\fires\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\sklearn\base.py", line 1389, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\fires\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\sklearn\preprocessing\_data.py", line 930, in partial_fit
+    X = validate_data(
+        ^^^^^^^^^^^^^^
+  File "C:\Users\fires\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\sklearn\utils\validation.py", line 2944, in validate_data
+    out = check_array(X, input_name="X", **check_params)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\fires\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\sklearn\utils\validation.py", line 1055, in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\fires\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\sklearn\utils\_array_api.py", line 839, in _asarray_with_order
+    array = numpy.asarray(array, order=order, dtype=dtype)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: float() argument must be a string or a real number, not 'Timestamp'

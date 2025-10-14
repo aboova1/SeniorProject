@@ -126,7 +126,8 @@ def load_sequences_and_prepare(
         sequences.append({
             'sequence_id': seq_id,
             'ticker': q7['ticker'],
-            'rebalance_date': q7.get('rebalance_date', q7.get('fiscal_quarter_end')),
+            'period_start_date': q7.get('period_start_date', q7.get('rebalance_date', q7.get('fiscal_quarter_end'))),
+            'period_end_date': q7.get('period_end_date'),
             'X': X_scaled,
             'y7_price': float(y7_price),
             'y8_price_actual': float(y8_price)
@@ -159,7 +160,8 @@ def generate_predictions(model: nn.Module, sequences_df: pd.DataFrame, device: t
             predictions.append({
                 'sequence_id': row['sequence_id'],
                 'ticker': row['ticker'],
-                'rebalance_date': row['rebalance_date'],
+                'period_start_date': row['period_start_date'],
+                'period_end_date': row.get('period_end_date'),
                 'y7_price': y7_price,
                 'y8_price_actual': row['y8_price_actual'],
                 'y8_price_predicted': y8_price_pred,
@@ -185,15 +187,15 @@ def backtest_single_threshold(
         investment_per_stock: Fixed dollar amount to invest per stock (default: $1000)
     """
 
-    # Sort by rebalance date
-    predictions_df['rebalance_date'] = pd.to_datetime(predictions_df['rebalance_date'])
-    predictions_df = predictions_df.sort_values('rebalance_date')
+    # Sort by period_start_date (actual transcript availability)
+    predictions_df['period_start_date'] = pd.to_datetime(predictions_df['period_start_date'])
+    predictions_df = predictions_df.sort_values('period_start_date')
 
     quarterly_results = []
     total_invested_all = 0.0
     total_returns_all = 0.0
 
-    for quarter_date, quarter_group in predictions_df.groupby('rebalance_date'):
+    for quarter_date, quarter_group in predictions_df.groupby('period_start_date'):
         # Filter to stocks predicted to gain > threshold
         high_confidence = quarter_group[quarter_group['predicted_return_pct'] > threshold_pct].copy()
 
